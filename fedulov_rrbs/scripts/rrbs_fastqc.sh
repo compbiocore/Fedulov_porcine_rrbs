@@ -10,6 +10,6 @@ source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
 for sample in `ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files/*fastq.gz`
 do
-align_dir="/gpfs/data/shared/databases/refchef_refs/S_scrofa/primary"
+align_dir="/gpfs/data/cbc/fedulov_alexey/porcine_rrbs" 
 fastqc -o ${align_dir}/fastqc $sample
 done

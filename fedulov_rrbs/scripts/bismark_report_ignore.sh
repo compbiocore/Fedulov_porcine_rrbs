@@ -10,5 +10,5 @@
 
 source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
-input=($(ls /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/alignments/ignore/*_bismark_bt2_SE_report.txt)) # using the round brackets indicates that this is a bash array
+input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/ignore/*_bismark_bt2_SE_report.txt)) # using the round brackets indicates that this is a bash array
 bismark2report ${input[$((SLURM_ARRAY_TASK_ID -1))]}  

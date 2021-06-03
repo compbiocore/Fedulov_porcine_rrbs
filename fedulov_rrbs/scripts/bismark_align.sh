@@ -10,5 +10,5 @@
 
 source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
-input=($(ls /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/trimmed/*_trimmed.fq.gz)) # using the round brackets indicates that this is a bash array
+input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/trimmed/*_trimmed.fq.gz)) # using the round brackets indicates that this is a bash array
 bismark -o /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/ignore --bowtie2 --genome /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ ${input[$((SLURM_ARRAY_TASK_ID -1))]} 
