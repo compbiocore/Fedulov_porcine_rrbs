@@ -1,1 +1,3 @@
-# Fedulov_porcine_rrbs
+# Fedulov Porcine RRBS
+
+This repository tracks the analysis pipeline for the RRBS analysis of porcine data for the Fedulov lab. All analysis steps are recorded in the analysis.md markdown file. The fedulov_rrbs folder contains a scripts subfolder, which contains all of the scripts used to run various aspects of the analysis. The portions of analysis.md that use bash were run on Oscar, while the R sections were run on a local machine.
