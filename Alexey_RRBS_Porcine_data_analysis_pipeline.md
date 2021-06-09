@@ -21,7 +21,7 @@ sbatch rrbs_fastqc.sh
 ```
 ## Trimming via Trim Galore
 
-Next, I used trimgalore in the RRBS mode to trim the reads:
+Next, I used trim galore in the RRBS mode to trim the reads:
 
 ```{bash}
 sbatch trim_galore.sh
@@ -32,7 +32,7 @@ Then I ran the reads through fastqc:
 sbatch trimmed_fastqc.sh
 ```  
 
-##Trimmomatic 
+## Trimmomatic 
 
 I then ran trimmomatic on the trimmed reads to remove TruSeq adapters: 
 
