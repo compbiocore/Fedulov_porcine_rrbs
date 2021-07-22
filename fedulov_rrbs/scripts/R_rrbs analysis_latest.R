@@ -6,8 +6,13 @@
 #######################
 
 
-# Note: Do liberal, moderate, and conservative approaches - 3 analyses with results 
+# Notes: Do liberal, moderate, and conservative approaches - 3 analyses with results 
 
+# Look back at commands used to download pig genome and look at organism and version and use this with GenomicFeatures package to make txdb - are the genes I care about diff methylated 
+
+# Once you have differentially methylated loci, we will figure out how to annotate them 
+
+# Add exploratory data analysis using MDS 
 
 # Load necessary packages (make sure they are installed) 
 library(biomaRt)
@@ -103,7 +108,9 @@ Coverage <- Me + Un
 #HasCoverage <- rowSums(Coverage >= 60) == 3 # requires that sum across methylated and unmethylated counts is at least 60 across three samples 
 
 # Get a list of CpGs with at least 8 counts (methylated and unmethylated) in all samples - conservative rule of thumb proposed by Chen et al. - too conservative 
-HasCoverage <- rowSums(Coverage >= 8) == 18 # requires that sum across methylated and unmethylated counts is at least 60 across three samples 
+
+# I will change to 5 counts - run again 
+HasCoverage <- rowSums(Coverage >= 5) == 18 # requires that sum across methylated and unmethylated counts is at least 60 across three samples 
 
 # List of CpGs that are not 0 both
 # this filters out CpG that are never methylated or always methylated as this provides no info about differential methylation 
@@ -115,7 +122,7 @@ table(HasCoverage, HasBoth)
 # apply those coverage filters
 y <- yall[HasCoverage & HasBoth,, keep.lib.sizes=FALSE] # keeps rows that don't have all zeros and have at least 3 Me and Un combinations that total at least 60 - this drops a lot of data! 
 
-#assign library sizes to each sample to be a sum of methylated and unmethylated counts
+# assign library sizes to each sample to be a sum of methylated and unmethylated counts
 TotalLibSize <- y$samples$lib.size[Methylation=="Me"] + y$samples$lib.size[Methylation=="Un"]
 y$samples$lib.size <- rep(TotalLibSize, each=2)
 y$samples
@@ -277,55 +284,6 @@ MVM_vs_SMVischemic_results_filtered
 HVM_vs_HSMVischemic_results_filtered
 
 
-# Write these to excel file 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###############################################################
-#' #write a test output sheet to check logfc, etc.
-#' write.table(nothing_across_estrogen_results_additive, '~/nothing_across_estrogen_results_additive.txt', row.names = F)
-#' 
-#' #make a list of sheets..
-#' sheet_list <- list(
-#'   #'Est in negative control' = nothing_across_estrogen_results_additive,
-#'   #'Est in talc' = talc_across_estrogen_results_additive,
-#'   #'Est in titanium' = titanium_across_estrogen_results_additive,
-#'   'Talc vs control in Est' = talc_within_estrogen_results_additive,
-#'   'Titanium vs control in Est' = titanium_within_estrogen_results_additive,
-#'   'Talc vs control in NoEst' = talc_within_noestrogen_results_additive,
-#'   'Titanium vs control in NoEst' = titanium_within_noestrogen_results_additive,
-#'   'Talc in Est vs Talc in NoEst' = talc_within_estrogen_VS_talc_within_no_estrogen_results_interaction,
-#'   'Titanium in Est vs Titanium in NoEst' = titanium_within_estrogen_VS_titanium_within_no_estrogen_results_interaction)
-#' 
-#' openxlsx::write.xlsx(sheet_list, file = 'DML_stats.xlsx')
-#' 
-#' nrow(talc_within_estrogen_results_additive)
-#' nrow(talc_within_noestrogen_results_additive)
-#' nrow(talc_within_estrogen_VS_talc_within_no_estrogen_results_interaction)
-#' 
-#' nrow(inner_join(talc_within_estrogen_results_additive, talc_within_noestrogen_results_additive, by = 'loci'))
-#' nrow(inner_join(talc_within_estrogen_results_additive, talc_within_estrogen_VS_talc_within_no_estrogen_results_interaction, by = 'loci'))
-#' nrow(inner_join(talc_within_noestrogen_results_additive, talc_within_estrogen_VS_talc_within_no_estrogen_results_interaction, by = 'loci'))
-#' 
-#' head(semi_join(talc_within_estrogen_results_additive, talc_within_noestrogen_results_additive, by = 'loci'))
-#' 
-#' #import the RNAseq file:
-#' rnaseq_data <- read.table('filt20_annot_LIMMA_TEvsVeh_005_Metacoreinput_AVG.txt', sep = '\t', header = T)
+# Write these to excel file (need to do next) 
 
 
