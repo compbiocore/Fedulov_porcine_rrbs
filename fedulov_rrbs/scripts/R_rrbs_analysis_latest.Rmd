@@ -8,6 +8,9 @@ output: html_document
 ```{r}
 library(edgeR)
 library(bsseq)
+library(dplyr)
+library(tidyr)
+library(openxlsx)
 ```
 
 ```{r}
@@ -293,6 +296,16 @@ save.image('/home/rstudio/dat/session10.Rdata')
 #################
 
 ```{r}
+load('/home/rstudio/dat/session10.Rdata')
+```
+
+```{r}
+y_gr_df$end <- NULL
+y_gr_df$width <- NULL
+y_gr_df$strand <- NULL
+y_gr_df$subjectHits <- NULL
+
+
 # Question 1 
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'loci')
 # add counts
@@ -349,3 +362,47 @@ nrow(HVM_vs_HSMVischemic_results_filtered)
 HVM_vs_HSMVischemic_results_filtered
 
 ```
+
+# Write worksheets/excel
+```{r}
+
+#First, make the readme tab:
+readme_glm <- "glmFit, glmLRT, and makeContrasts functions in edgeR were used to fit a genewise negative binomial GLM and make comparisons of interest based on the research question."
+readme_loci <- "`loci` column is the location of a given genomic location. The first number or letter is the chromosome, followed by a `-` symbol and a second number indicates the position or location on the chromosome."
+readme_logFC <- "`logFC` indicates the log2-fold change of expression between the two conditions tested. For `SMVisch_vs_SMVnormal_results_filtered` results, positive values indicate higher methylation rates in SMVnormal relative to SMVisch, negative values indicate lower methylation rates in SMVnormal vs SMVisch. For `HSMVisch_vs_HSMVnormal_results_filtered` results, positive values indicate higher methylation rates in HSMVnormal relative to HSMVisch, negative values indicate lower methylation rates in HSMVnormal relative to HSMVisch. For `diffisch_vs_diffnormal_results_filtered` results, positive values indicate ...? For `MVM_vs_SMVischemic_results_filtered` results, positive values indicate higher methylation rates in MVM relative to SMVischemic, negative values indicate lower methylation rates in MVM relative to SMVischemic."
+readme_logCPM <- "`logCPM` is the average log2-counts per million, the average taken over all libraries used in the experiment."
+readme_LR <- "`LR` is the likelihood ratio statistics (larger LR, smaller p-value"
+readme_PValue <- "`PValue` probability of obtaining results at least as extreme as the results actually observed, under the assumption that the null hypothesis is correct"
+readme_BH <- "`BH` is Benjamini & Hochberg corrected p-values"
+readme_bonferroni <- "`bonferroni` Bonferroni corrected p-values"
+readme_MeUn <- "The columns with the format `#-Me` or `#-Un` indicate the methylated and unmethylated counts at a given locus for a particular sample."
+readme_Chr <- "`Chr` is the chromosome of the locus"
+readme_Locus <- "`Locus` is the position of the locus on the chromosome indicated in the `Chr` column."
+readme_methylation_proportion <- "The columns with the format `methylated_proportion_#` indicate the proportion of methylated counts at a given loci for a particular sample, calculated as `methylated counts / (unmethylated counts + methylated counts)` for each sample and loci."
+readme_TSS_start <- "`TSS_start` indicates the TSS location nearest to the methylation loci shown."
+readme_uniprot_gn_symbol <- "`uniprot_gn_symbol` is the gene symbol (if available) associated with each TSS"
+readme_ensembl_gene_id <- "`ensembl_gene_id` is the Ensembl gene ID associated with each TSS"
+readme_ensembl_gene_start <- "`gene_start` and `gene_end` are the start and end genomic positions for each gene."
+
+readme_sheet <- rbind(readme_glm, readme_loci, readme_logFC, readme_logCPM, readme_LR, readme_PValue, readme_BH, readme_bonferroni, readme_MeUn, readme_Chr, readme_Locus, readme_methylation_proportion, readme_TSS_start, readme_uniprot_gn_symbol, readme_ensembl_gene_id, readme_ensembl_gene_start)
+```
+```{r}
+list_1 <- list(readme_sheet, SMVisch_vs_SMVnormal_results_filtered)
+names(list_1) <- c("readme", "SMVisch_vs_SMVnormal")
+write.xlsx(list_1, file = '/home/rstudio/dat/SMVisch_vs_SMVnormal_results_filtered.xlsx')
+
+list_2 <- list(readme_sheet, HSMVisch_vs_HSMVnormal_results_filtered)
+names(list_2) <- c("readme", "HSMVisch_vs_HSMVnormal")
+write.xlsx(list_2, file = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_results_filtered.xlsx')
+
+list_3 <- list(readme_sheet, diffisch_vs_diffnormal_results_filtered)
+names(list_3) <- c("readme", "diffisch_vs_diffnormal")
+write.xlsx(list_3, file = '/home/rstudio/dat/diffisch_vs_diffnormal_results_filtered.xlsx')
+
+list_4 <- list(readme_sheet, HVM_vs_HSMVischemic_results_filtered)
+names(list_4) <- c("readme", "HVM_vs_HSMVischemic")
+write.xlsx(list_4, file = '/home/rstudio/dat/HVM_vs_HSMVischemic_results_filtered.xlsx')
+
+```
+
+
