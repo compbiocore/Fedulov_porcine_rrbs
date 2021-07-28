@@ -1,0 +1,182 @@
+---
+title: "RRBS analysis pipeline"
+author: "Joselynn Wallace and Jordan Lawson"
+date: "7/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## RRBS porcine project analysis pipeline 
+
+This report contains information regarding the analysis pipeline for Alexey Fedulov's rrbs analysis' 
+
+Overview: 22 samples of Sus scrofa (pig) were received as DNA. Of the 22 samples, samples 9, 13, 17, and 20 were not sequenced, thereby leaving 18 samples. 
+The samples were subjected to 
+enzymatic digestion (MSP1 + TaqI), library preparation, bisulfite conversion, Bioanalyzer QC, KAPA
+library quantification, multiplex NGS on an Illumina HiSeq4000 and advanced data analysis.
+
+The following steps were performed in the analysis pipeline: 
+
+- Initial QC of raw reads was run using FASTQC (Andrews S. (2010)).
+
+- Reads were trimmed using Trim Galore and Trimmomaic. 
+
+- Bismark was used to prepare the reference genome and to align trimmed reads.
+
+- Bismark methylation extractor was used to extract methylation information.
+
+- The edgeR package was used to find differentially methylated loci (Chen et al. 2018). 
+
+## Part 1: Initial QC 
+Initial QC analyses of raw reads was performed in FastQC (V0.11.5). To remove overrepresented sequences, adapters, and low-quality sequences, trimming was performed via a two-step process. First, trimming was performed using trim galore with the following parameters: 
+```
+trim_galore --quality 20 --clip_R1 6 --adapter AGATCGGAAGAGC --output_dir ${dir} --rrbs $sample 
+```
+
+Then on the trimmed reads, trimming was once again performed in trimmomatic using the following parameters: 
+  
+```
+- trimmomatic:
+  subcommand: SE
+options:
+  " ILLUMINACLIP:/gpfs/data/cbc/cbc_conda_v1/envs/cbc_conda/opt/trimmomatic-0.36/adapters/TruSeq3-SE.fa:2:30:5:6:true":
+  "SLIDINGWINDOW:4:20 MINLEN:35":
+```
+
+## Part 2: Read quality plots 
+ **Library** | **Raw reads**  | **Trimmed reads** |
+|:------:|:-----------:|:----------:|
+| Rh1_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh1_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh1_trim_png.png) |
+| Rh2_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh2_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh2_trim_png.png) |
+| Rh3_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh3_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh3_trim_png.png) |
+| Rh4_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh4_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh4_trim_png.png) |
+| Rh5_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh5_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh5_trim_png.png) |
+| Rh6_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh6_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh6_trim_png.png) |
+| Rh7_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh7_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh7_trim_png.png) |
+| Rh8_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh8_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh8_trim_png.png) |
+| Rh10_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh10_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh10_trim_png.png) |
+| Rh11_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh11_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh11_trim_png.png) |
+| Rh12_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh12_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh12_trim_png.png) |
+| Rh14_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh14_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh14_trim_png.png) |
+| Rh15_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh15_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh15_trim_png.png) |
+| Rh16_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh16_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh16_trim_png.png) |
+| Rh18_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh18_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh18_trim_png.png) |
+| Rh19_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh19_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh19_trim_png.png) |
+| Rh21_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh21_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh21_trim_png.png) |
+| Rh22_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh22_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh22_trim_png.png) |
+
+## Part 3: GC content plots 
+ **Library** | **Raw reads**  | **Trimmed reads** |
+|:------:|:-----------:|:----------:|
+| Rh1_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh1_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh1_trim_gc.png) |
+| Rh2_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh2_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh2_trim_gc.png) |
+| Rh3_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh3_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh3_trim_gc.png) |
+| Rh4_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh4_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh4_trim_gc.png) |
+| Rh5_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh5_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh5_trim_gc.png) |
+| Rh6_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh6_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh6_trim_gc.png) |
+| Rh7_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh7_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh7_trim_gc.png) |
+| Rh8_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh8_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh8_trim_gc.png) |
+| Rh10_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh10_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh10_trim_gc.png) |
+| Rh11_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh11_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh11_trim_gc.png) |
+| Rh12_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh12_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh12_trim_gc.png) |
+| Rh14_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh14_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh14_trim_gc.png) |
+| Rh15_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh15_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh15_trim_gc.png) |
+| Rh16_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh16_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh16_trim_gc.png) |
+| Rh18_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh18_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh18_trim_gc.png) |
+| Rh19_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh19_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh19_trim_gc.png) |
+| Rh21_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh21_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh21_trim_gc.png) |
+| Rh22_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh22_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh22_trim_gc.png) |
+
+
+## Part 4: Read alignment
+* Trimmed reads were aligned against the Ensembl assembly Sscrofa11.1.
+* Reference indexing and read mapping were performed in Bismark in which bisulfite indexes for Bowtie2 were created (`--bowtie2`) and mapping was done for PBAT libraries (`--pbat`)  using the following parameters: 
+```
+bismark -o /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update --bowtie2 --genome /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ --un --pbat $trimmed_read
+```
+
+## Part 5: Alignment summary statistics
+| **LIBRARY** | **NUMBER_READS** | **MAPPED_READS** | **UNMAPPED_READS** | **DUPLICATED_READS** | **DUPLICATION_RATE** |  
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Rh1_R1_001 | 10,845,489 | 10,845,489 / 100% | 0 / 0% | 1,437,581 / 13.26% | 12.6% | 
+| Rh2_R1_001 | 12,892,543 | 12,892,543 / 100% | 0 / 0% | 1,496,670 / 11.61% | 10.93% | 
+| Rh3_R1_001 | 8,715,481 | 8,715,481 / 100% | 0 / 0% | 1,029,908 / 11.82% | 11.02% | 
+| Rh4_R1_001 | 9,968,480 | 9,968,480 / 100% | 0 / 0% | 1,209,925 / 12.14% | 11.51% | 
+| Rh5_R1_001 | 13,925,551 | 13,925,551 / 100% | 0 / 0% | 2,056,379 / 14.77% | 13.91% | 
+| Rh6_R1_001 | 13,362,404 | 13,362,404 / 100% | 0 / 0% | 1,750,619 / 13.1% | 12.31% | 
+| Rh7_R1_001 | 12,851,559 | 12,851,559 / 100% | 0 / 0% | 1,713,430 / 13.33% | 12.48% | 
+| Rh8_R1_001 | 12,872,887 | 12,872,887 / 100% | 0 / 0% | 1,769,849 / 13.75% | 12.93% | 
+| Rh10_R1_001 | 15,060,158 | 15,060,158 / 100% | 0 / 0% | 2,107,684 / 14% | 13.11% | 
+| Rh11_R1_001 | 13,432,863 | 13,432,863 / 100% | 0 / 0% | 1,930,952 / 14.37% | 13.51% | 
+| Rh12_R1_001 | 14,880,989 | 14,880,989 / 100% | 0 / 0% | 2,381,186 / 16% | 14.75% | 
+| Rh14_R1_001 | 13,023,116 | 13,023,116 / 100% | 0 / 0% | 1,938,398 / 14.88% | 13.62% | 
+| Rh15_R1_001 | 13,292,288 | 13,292,288 / 100% | 0 / 0% | 1,992,503 / 14.99% | 13.72% | 
+| Rh16_R1_001 | 17,058,927 | 17,058,927 / 100% | 0 / 0% | 2,756,384 / 16.16% | 15.03% | 
+| Rh18_R1_001 | 12,196,440 | 12,196,440 / 100% | 0 / 0% | 1,814,764 / 14.88% | 13.42% | 
+| Rh19_R1_001 | 13,248,129 | 3,248,129 / 100% | 0 / 0% | 1,901,092 / 14.35% | 13.16% | 
+| Rh21_R1_001 | 16,030,293 | 16,030,293 / 100% | 0 / 0% | 2,624,856 / 16.37% | 14.84% | 
+| Rh22_R1_001 | 13,927,765 | 13,927,765 / 100% | 0 / 0% | 1,961,472 / 14.08% | 13.05% | 
+
+| **LIBRARY** | **COVERAGE_MEAN** | **COVERAGE_SD** | **MEAN_MAP_QUALITY** | 
+|:---:|:---:|:---:|:---:|
+| Rh1_R1_001 | 0.1844 | 0.7664 | 28.42 |
+| Rh2_R1_001 | 0.2191 | 0.8243 | 29.32 | 
+| Rh3_R1_001 | 0.1482 | 0.7405 | 27.77 |
+| Rh4_R1_001 | 0.1694 | 0.7166 | 28.62 | 
+| Rh5_R1_001 | 0.2368 | 0.943 | 28.68 | 
+| Rh6_R1_001 | 0.2271 | 0.9149 | 29.01 | 
+| Rh7_R1_001 | 0.2185 | 0.8851 | 28.47 | 
+| Rh8_R1_001 | 0.2188 | 0.9475 | 29.15 | 
+| Rh10_R1_001 | 0.2561 | 1.0472 | 28.59 | 
+| Rh11_R1_001 | 0.2284 | 0.9772 | 28.47 | 
+| Rh12_R1_001 | 0.253 | 1.0263 | 29.06 | 
+| Rh14_R1_001 | 0.2214 | 0.9804 | 29.35 | 
+| Rh15_R1_001 | 0.226 | 0.9128 | 28.77 | 
+| Rh16_R1_001 | 0.29 | 1.2004 | 29.18 | 
+| Rh18_R1_001 | 0.2075 | 1.0798 | 28.59 | 
+| Rh19_R1_001 | 0.2252 | 0.9003 | 29.01 | 
+| Rh21_R1_001 | 0.2726 | 1.2379 | 29.02 | 
+| Rh22_R1_001 | 0.2368 | 1.1062 | 29.13 | 
+
+## Part 6: Methylation Extracor 
+
+Bismark methylation extractor was used to extract methylation information using the following parameters:
+```
+bismark_methylation_extractor --bedGraph --comprehensive -s --merge_non_CpG --report --output /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/ --gzip --multicore 8 --genome_folder /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ $sample  
+```
+This produced m-bias plots, illustrating the methylation proportion across each possible position in the read (see Part 7 below). 
+
+## Part 7: M-bias plots 
+ **Library** | **M-bias plot** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](png_mbias/rh1_Bismark M-bias Read 1.png) | 
+| Rh2_R1_001 | ![](png_mbias/rh2_Bismark M-bias Read 1.png) | 
+| Rh3_R1_001 | ![](png_mbias/rh3_Bismark M-bias Read 1.png) | 
+| Rh4_R1_001 | ![](png_mbias/rh4_Bismark M-bias Read 1.png) | 
+| Rh5_R1_001 | ![](png_mbias/rh5_Bismark M-bias Read 1.png) | 
+| Rh6_R1_001 | ![](png_mbias/rh6_Bismark M-bias Read 1.png) | 
+| Rh7_R1_001 | ![](png_mbias/rh7_Bismark M-bias Read 1.png) | 
+| Rh8_R1_001 | ![](png_mbias/rh8_Bismark M-bias Read 1.png) | 
+| Rh10_R1_001 | ![](png_mbias/rh10_Bismark M-bias Read 1.png) | 
+| Rh11_R1_001 | ![](png_mbias/rh11_Bismark M-bias Read 1.png) | 
+| Rh12_R1_001 | ![](png_mbias/rh12_Bismark M-bias Read 1.png) | 
+| Rh14_R1_001 | ![](png_mbias/rh14_Bismark M-bias Read 1.png) | 
+| Rh15_R1_001 | ![](png_mbias/rh15_Bismark M-bias Read 1.png) | 
+| Rh16_R1_001 | ![](png_mbias/rh16_Bismark M-bias Read 1.png) | 
+| Rh18_R1_001 | ![](png_mbias/rh18_Bismark M-bias Read 1.png) | 
+| Rh19_R1_001 | ![](png_mbias/rh19_Bismark M-bias Read 1.png) | 
+| Rh21_R1_001 | ![](png_mbias/rh21_Bismark M-bias Read 1.png) | 
+| Rh22_R1_001 | ![](png_mbias/rh22_Bismark M-bias Read 1.png) | 
+
+
+## Part 8: Filtering and GLM (Analysis)
+Genes were filtered such that only CpGs with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis. 
+Additionally, CpGs that were never methylated or always methylated were filtered out, as these provide no information about differential methylation. 
+The resulting sample size after filtering was 84,999. 
+
+The glmFit function was used to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated loci for comparisons of interest, which were made by constructing contrast vectors. Individual CpG sites were considered differentially methylated if the nominal p-value was < 0.02. 
+
+
