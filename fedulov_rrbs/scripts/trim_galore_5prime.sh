@@ -10,6 +10,6 @@ source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
 for sample in `ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files/*fastq.gz`
 do
-dir="/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/trim_5_prime"
+dir="/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/trim_galore"
 trim_galore --quality 20 --clip_R1 6 --adapter AGATCGGAAGAGC --output_dir ${dir} --rrbs $sample 
 done

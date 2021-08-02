@@ -8,8 +8,8 @@
 
 source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
-for sample in `ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/trimmomatic_update/*_tr.fq.gz`
+for sample in `ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/trimmomatic/*_tr.fq.gz`
 do
 trim_qc_dir="/gpfs/data/cbc/fedulov_alexey/porcine_rrbs"
-fastqc -o ${trim_qc_dir}/retrim_qc_update $sample
+fastqc -o ${trim_qc_dir}/trimmomatic_qc $sample
 done

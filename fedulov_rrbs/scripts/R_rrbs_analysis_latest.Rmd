@@ -11,7 +11,6 @@ library(bsseq)
 library(dplyr)
 library(tidyr)
 library(openxlsx)
-library(biomaRt)
 ```
 
 ```{r}
@@ -228,7 +227,6 @@ ss_mart <- useMart("ensembl", dataset = "sscrofa_gene_ensembl")
 attributes <- listAttributes(ss_mart)
 attributes[grep("symbol", attributes$description, ignore.case = TRUE), ]
 attributes[grep("transcription", attributes$description, ignore.case = TRUE), ]
-attributes[grep("vgnc", attributes$description, ignore.case = TRUE), ]
 
 ss_tss <- getBM(attributes = c("transcription_start_site", 
                                "chromosome_name", 
@@ -239,95 +237,56 @@ ss_tss <- getBM(attributes = c("transcription_start_site",
                                "uniprot_gn_symbol"), 
                 mart = ss_mart)
 
-ss_tss_2 <- getBM(attributes = c("transcription_start_site", 
-                               "chromosome_name", 
-                               "start_position",
-                               "end_position",
-                               "hgnc_symbol",
-                               "entrezgene_id",
-                               "description"), 
-                mart = ss_mart)
-
 ss_tss <- as.data.frame(ss_tss)
-ss_tss_2 <- as.data.frame(ss_tss_2)
-ss_tss_all <- inner_join(ss_tss, ss_tss_2, by = c("transcription_start_site", "chromosome_name", "start_position", "end_position"))
-ss_tss <- ss_tss_all
+ss_tss$transcription_end_site <- (ss_tss$transcription_start_site + 1)
+ss_tss_gr <- makeGRangesFromDataFrame(ss_tss, start.field = 'transcription_start_site', end.field = 'transcription_end_site', ignore.strand = T)
 
-```
-
-```{r}
-#find and replace the 'strand' column so that -1 is - and 1 is +
-library(stringr)
-ss_tss$strand <- str_replace(string = ss_tss$strand, pattern = '-1', replacement = '-')
-ss_tss$strand <- str_replace(string = ss_tss$strand, pattern = '1', replacement = '+')
-
-#filter so we only have chromosomes
-ss_tss_filt <- dplyr::filter(ss_tss, chromosome_name=='1' |  chromosome_name=='2' |chromosome_name=='3' |chromosome_name=='4' |chromosome_name=='5' |chromosome_name=='6' |chromosome_name=='7' |chromosome_name=='8' |chromosome_name=='9' |chromosome_name=='10' |chromosome_name=='11' |chromosome_name=='12' |chromosome_name=='13' |chromosome_name=='14' |chromosome_name=='15' |chromosome_name=='16' |chromosome_name=='17' |chromosome_name=='18' |chromosome_name=='X' |chromosome_name=='Y')
-ss_tss <- ss_tss_filt
-
-# turn to granges
-ss_tss_gr <- makeGRangesFromDataFrame(ss_tss, start.field = 'start_position', end.field = 'end_position')
-
-# add metadata
-ss_tss_gr$transcription_start_site <- ss_tss$transcription_start_site
-ss_tss_gr$ensembl_gene_id <- ss_tss$ensembl_gene_id
-ss_tss_gr$uniprot_gn_symbol <- ss_tss$symbol
-ss_tss_gr$embl <- ss_tss$embl
-ss_tss_gr$hgnc_symbol <- ss_tss$hgnc_symbol
 ss_tss_gr$uniprot_gn_symbol <- ss_tss$uniprot_gn_symbol
-ss_tss_gr$entrezgene_id <- ss_tss$entrezgene_id
-```
+ss_tss_gr$ensembl_gene_id <- ss_tss$ensembl_gene_id
+ss_tss_gr$gene_start <- ss_tss$start_position
+ss_tss_gr$gene_end <- ss_tss$end_position
 
-```{r}
-#get all the loci used in  the DML analysis..
+#get all the genes used in  the DML analysis..
 y_loc <- as.data.frame(y$genes)
 y_loc$start <- y_loc$Locus
+y_loc$end <- (y_loc$start + 1)
 row.names(y_loc) <- NULL
 
-#turn them into granges
-y_gr <- makeGRangesFromDataFrame(y_loc, start.field = 'Locus', end.field = 'Locus')
+y_gr <- makeGRangesFromDataFrame(y_loc, 
+                                 ignore.strand = T)
 
 #y_loc and y_gr are the methylation sites
 #ss_tss_gr is all the TSS and associated gene symbols, ids, and ranges
-```
 
+#use nearest function in GenomicRanges
+y_nearest_tss <- nearest(y = y_gr,
+                         x = ss_tss_gr)
 
-```{r}
-#use distancetonearest function in GenomicRanges
-dtn <- as.data.frame(distanceToNearest(x = y_gr, subject = ss_tss_gr, select = 'all'))
+dtn <- as.data.frame(distanceToNearest(x = y_gr, subject = ss_tss_gr, ignore.strand=T))
 
-#subjectHits column is the index row of the nearest TSS in the S. scrofa genome data
-#queryHits column is the index row of the query data (the loci we have methylation info for)
+y_gr$distance <- dtn$distance
+y_gr$subjectHits <- dtn$subjectHits
 
-#save.image('/home/rstudio/dat/session9.Rdata')
+save.image('/home/rstudio/dat/session9.Rdata')
 
 #the distance function returns the row indices, use the slice function to pull them out of the y_gr object
-subject_slice_dtn <- as.data.frame(ss_tss_gr) %>% slice(dtn$subjectHits)
-tss_slice <- as.data.frame(ss_tss_gr) %>% slice(dtn$subjectHits) %>% rename(gene_start = start, gene_end = end, gene_width = width) %>% dplyr::select(-seqnames)
-y_slice <- as.data.frame(y_gr) %>% slice(dtn$queryHits)
-y_slice <- cbind(y_slice, dtn)
+tss_slice <- as.data.frame(ss_tss_gr) %>% slice(y_gr$subjectHits)
+y_gr_df <- as.data.frame(y_gr)
 
-# bind y_slice and tss_slice
-y_tss_slice <- cbind(y_slice, tss_slice) 
-y_tss_slice$queryHits <- NULL 
-y_tss_slice$subjectHits <- NULL 
-y_tss_slice <- y_tss_slice %>% unite("loci", seqnames:start, sep = '-')
+#add other info like gene symbol, etc.
+y_gr_df$TSS_start <- tss_slice$start
+y_gr_df$distance <- tss_slice$distance
+y_gr_df$uniprot_gn_symbol <- tss_slice$uniprot_gn_symbol
+y_gr_df$ensembl_gene_id <- tss_slice$ensembl_gene_id
+y_gr_df$gene_start <- tss_slice$gene_start
+y_gr_df$gene_end <- tss_slice$gene_end
 
-```
+#make a new 'locus' column to match whats in the results tables
+y_gr_df <- unite(y_gr_df, col = 'loci', sep = '-', seqnames:start)
 
+rownames(y_gr_df) <- y_gr_df$locus
 
-```{r}
-#biomart is missing a few ensembl to entrez gene ID conversions (for example, ENSSSCG00000037372)
-#lets see if annotationhub can find them
-#library(AnnotationHub)
-#ah <- AnnotationHub()
-#edb <- query(ah, c("EnsDb", "scrofa"))[["AH89550"]]
-#gns <- genes(edb)
-#head(gns)
-
-#Nope, looks like annotationhub doesn't have it either
-
-#save.image('/home/rstudio/dat/session10.Rdata')
+save.image('/home/rstudio/dat/session10.Rdata')
 
 ```
 
@@ -341,6 +300,10 @@ load('/home/rstudio/dat/session10.Rdata')
 ```
 
 ```{r}
+y_gr_df$end <- NULL
+y_gr_df$width <- NULL
+y_gr_df$strand <- NULL
+y_gr_df$subjectHits <- NULL
 
 
 # Question 1 
@@ -348,7 +311,7 @@ SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibbl
 # add counts
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, y_tss_slice, by = c('loci' = 'loci'))
+SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, y_gr_df, by = c('loci' = 'locus'))
 # filter results based on on nominal p-value
 SMVisch_vs_SMVnormal_results_filtered <- SMVisch_vs_SMVnormal_results %>% dplyr::filter(PValue < 0.01)
 nrow(SMVisch_vs_SMVnormal_results_filtered)
@@ -359,7 +322,7 @@ HSMVisch_vs_HSMVnormal_results <- data.frame(HSMVisch_vs_HSMVnormal$table) %>% t
 # add counts
 HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, y_tss_slice, by = c('loci' = 'loci'))
+HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, y_gr_df, by = c('loci' = 'locus'))
 # filter results based on on nominal p-value
 HSMVisch_vs_HSMVnormal_results_filtered <- HSMVisch_vs_HSMVnormal_results %>% dplyr::filter(PValue < 0.01)
 nrow(HSMVisch_vs_HSMVnormal_results_filtered)
@@ -370,7 +333,7 @@ diffisch_vs_diffnormal_results <- data.frame(diffisch_vs_diffnormal$table) %>% t
 # add counts
 diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, y_tss_slice, by = c('loci' = 'loci'))
+diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, y_gr_df, by = c('loci' = 'locus'))
 # filter results based on on nominal p-value
 diffisch_vs_diffnormal_results_filtered <- diffisch_vs_diffnormal_results %>% dplyr::filter(PValue < 0.01)
 nrow(diffisch_vs_diffnormal_results_filtered)
@@ -381,7 +344,7 @@ MVM_vs_SMVischemic_results <- data.frame(MVM_vs_SMVischemic$table) %>% tibble::r
 # add counts
 MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, y_tss_slice, by = c('loci' = 'loci'))
+MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, y_gr_df, by = c('loci' = 'locus'))
 # filter results based on on nominal p-value
 MVM_vs_SMVischemic_results_filtered <- MVM_vs_SMVischemic_results %>% dplyr::filter(PValue < 0.01)
 nrow(MVM_vs_SMVischemic_results_filtered)
@@ -392,7 +355,7 @@ HVM_vs_HSMVischemic_results <- data.frame(HVM_vs_HSMVischemic$table) %>% tibble:
 # add counts
 HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, y_tss_slice, by = c('loci' = 'loci'))
+HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, y_gr_df, by = c('loci' = 'locus'))
 # filter results based on on nominal p-value
 HVM_vs_HSMVischemic_results_filtered <- HVM_vs_HSMVischemic_results %>% dplyr::filter(PValue < 0.01)
 nrow(HVM_vs_HSMVischemic_results_filtered)

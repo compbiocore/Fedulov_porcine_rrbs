@@ -10,6 +10,6 @@
 
 source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
-#/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update
-input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/*_bismark_bt2_SE_report.txt)) # using the round brackets indicates that this is a bash array
-bismark2report --alignment_report ${input[$((SLURM_ARRAY_TASK_ID -1))]} --dir /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/
+#/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/
+input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/*_bismark_bt2_SE_report.txt)) # using the round brackets indicates that this is a bash array
+bismark2report --alignment_report ${input[$((SLURM_ARRAY_TASK_ID -1))]} --dir /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments

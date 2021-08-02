@@ -10,5 +10,5 @@
 
 source /gpfs/runtime/cbc_conda/bin/activate_cbc_conda
 conda activate fedulov_rrbs
-input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/*_tr_bismark_bt2.bam))
-bam2nuc --dir /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/bam2nuc --genome_folder /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ ${input[$((SLURM_ARRAY_TASK_ID -1))]} 
+input=($(ls /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/*_tr_bismark_bt2.bam))
+bam2nuc --dir /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/bam2nuc --genome_folder /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ ${input[$((SLURM_ARRAY_TASK_ID -1))]} 
