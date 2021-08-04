@@ -1,7 +1,7 @@
 ---
 title: "RRBS analysis pipeline"
 author: "Joselynn Wallace and Jordan Lawson"
-date: "7/28/2021"
+date: "8/3/2021"
 output: html_document
 ---
 
@@ -68,7 +68,29 @@ options:
 | Rh21_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh21_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh21_trim_png.png) |
 | Rh22_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/Rh22_png.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/Rh22_trim_png.png) |
 
-## Part 3: GC content plots 
+## Part 3: Per base sequence content
+**Library** | **Raw reads**  | **Trimmed reads** |
+|:------:|:-----------:|:----------:|
+| Rh1_R1_001 | ![](base/Rh1_base.png) | ![](base_trim/Rh1_base_trim.png) |
+| Rh2_R1_001 | ![](base/Rh2_base.png) | ![](base_trim/Rh2_base_trim.png) |
+| Rh3_R1_001 | ![](base/Rh3_base.png) | ![](base_trim/Rh3_base_trim.png) |
+| Rh4_R1_001 | ![](base/Rh4_base.png) | ![](base_trim/Rh4_base_trim.png) |
+| Rh5_R1_001 | ![](base/Rh5_base.png) | ![](base_trim/Rh5_base_trim.png) |
+| Rh6_R1_001 | ![](base/Rh6_base.png) | ![](base_trim/Rh6_base_trim.png) |
+| Rh7_R1_001 | ![](base/Rh7_base.png) | ![](base_trim/Rh7_base_trim.png) |
+| Rh8_R1_001 | ![](base/Rh8_base.png) | ![](base_trim/Rh8_base_trim.png) |
+| Rh10_R1_001 | ![](base/Rh10_base.png) | ![](base_trim/Rh10_base_trim.png) |
+| Rh11_R1_001 | ![](base/Rh11_base.png) | ![](base_trim/Rh11_base_trim.png) |
+| Rh12_R1_001 | ![](base/Rh12_base.png) | ![](base_trim/Rh12_base_trim.png) |
+| Rh14_R1_001 | ![](base/Rh14_base.png) | ![](base_trim/Rh14_base_trim.png) |
+| Rh15_R1_001 | ![](base/Rh15_base.png) | ![](base_trim/Rh15_base_trim.png) |
+| Rh16_R1_001 | ![](base/Rh16_base.png) | ![](base_trim/Rh16_base_trim.png) |
+| Rh18_R1_001 | ![](base/Rh18_base.png) | ![](base_trim/Rh18_base_trim.png) |
+| Rh19_R1_001 | ![](base/Rh19_base.png) | ![](base_trim/Rh19_base_trim.png) |
+| Rh21_R1_001 | ![](base/Rh21_base.png) | ![](base_trim/Rh21_base_trim.png) |
+| Rh22_R1_001 | ![](base/Rh22_base.png) | ![](base_trim/Rh22_base_trim.png) |
+
+## Part 4: GC content plots 
  **Library** | **Raw reads**  | **Trimmed reads** |
 |:------:|:-----------:|:----------:|
 | Rh1_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh1_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh1_trim_gc.png) |
@@ -91,14 +113,14 @@ options:
 | Rh22_R1_001 | ![](fastqc_reports_Alexey/initial_qc/png/rh22_gc.png) | ![](fastqc_reports_Alexey/retrim_qc/png_trim/rh22_trim_gc.png) |
 
 
-## Part 4: Read alignment
+## Part 5: Read alignment
 * Trimmed reads were aligned against the Ensembl assembly Sscrofa11.1.
 * Reference indexing and read mapping were performed in Bismark in which bisulfite indexes for Bowtie2 were created (`--bowtie2`) and mapping was done for PBAT libraries (`--pbat`)  using the following parameters: 
 ```
 bismark -o /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update --bowtie2 --genome /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ --un --pbat $trimmed_read
 ```
 
-## Part 5: Alignment summary statistics
+## Part 6: Alignment summary statistics
 | **LIBRARY** | **NUMBER_READS** | **MAPPED_READS** | **UNMAPPED_READS** | **DUPLICATED_READS** | **DUPLICATION_RATE** |  
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | Rh1_R1_001 | 10,845,489 | 10,845,489 / 100% | 0 / 0% | 1,437,581 / 13.26% | 12.6% | 
@@ -141,15 +163,15 @@ bismark -o /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update --bowtie
 | Rh21_R1_001 | 0.2726 | 1.2379 | 29.02 | 
 | Rh22_R1_001 | 0.2368 | 1.1062 | 29.13 | 
 
-## Part 6: Methylation Extracor 
+## Part 7: Methylation Extracor 
 
 Bismark methylation extractor was used to extract methylation information using the following parameters:
 ```
-bismark_methylation_extractor --bedGraph --comprehensive -s --merge_non_CpG --report --output /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update/ --gzip --multicore 8 --genome_folder /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ $sample  
+bismark_methylation_extractor --bedGraph --comprehensive --ignore_3prime 6 -s --merge_non_CpG --report --output /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/ --gzip --multicore 8 --genome_folder /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ $sample  
 ```
-This produced m-bias plots, illustrating the methylation proportion across each possible position in the read (see Part 7 below). 
+This produced m-bias plots, illustrating the methylation proportion across each possible position in the read (see Part 8 below). 
 
-## Part 7: M-bias plots 
+## Part 8: M-bias plots 
  **Library** | **M-bias plot** | 
 |:------:|:-----------:|
 | Rh1_R1_001 | ![](png_mbias/rh1_Bismark M-bias Read 1.png) | 
@@ -172,11 +194,44 @@ This produced m-bias plots, illustrating the methylation proportion across each 
 | Rh22_R1_001 | ![](png_mbias/rh22_Bismark M-bias Read 1.png) | 
 
 
-## Part 8: Filtering and GLM (Analysis)
+## Part 9: Filtering and GLM (Statistical Analysis)
 Genes were filtered such that only CpGs with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis. 
 Additionally, CpGs that were never methylated or always methylated were filtered out, as these provide no information about differential methylation. 
 The resulting sample size after filtering was 84,999. 
 
-The glmFit function was used to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated loci for comparisons of interest, which were made by constructing contrast vectors. Individual CpG sites were considered differentially methylated if the nominal p-value was < 0.02. 
+The glmFit function was used to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated loci for comparisons of interest, which were made by constructing contrast vectors. Individual CpG sites were considered differentially methylated if the nominal p-value was < 0.01. Results were filtered based on this nominal p-value threshold.  
 
+Results from the statistical analyses have been stored in excel files (and sent to you via email), with files being named by research question. Note that the excel files entitled `both_HSM_and SMV.xlsx`, `SMV_effect_only.xlsx`, and `HSMV_effect_only.xlsx` are the overlap in results lists from the HSMV normal vs HSMV ischemic and SMV normal vs. SMV ischemic comparisons.`both_HSM_and SMV.xlsx` includes loci for which there was an effect for tissue type in both high fat and normal diets; `SMV_effect_only.xlsx` includes loci for which there was an effect for tissue type in normal diet only (and not in high fat); and conversely, `HSMV_effect_only.xlsx` includes loci for which there was an effect of tissue type in high fat diet only (and not in normal diet).
+
+The results files contain the following columns: 
+
+- "`loci` column is the location of a given genomic location. The first number or letter is the chromosome, followed by a `-` symbol and a second number indicates the position or location on the chromosome."
+
+- "`logFC` indicates the log2-fold change of expression between the two conditions tested. For `SMVisch_vs_SMVnormal_results_filtered` results, positive values indicate higher methylation rates in SMVnormal relative to SMVisch, negative values indicate lower methylation rates in SMVnormal vs SMVisch. For `HSMVisch_vs_HSMVnormal_results_filtered` results, positive values indicate higher methylation rates in HSMVnormal relative to HSMVisch, negative values indicate lower methylation rates in HSMVnormal relative to HSMVisch. For `diffisch_vs_diffnormal_results_filtered` results, positive values indicate that the difference due to normal vs ischemic is greater in SMV than HSMV. For `MVM_vs_SMVischemic_results_filtered` results, positive values indicate higher methylation rates in MVM relative to SMVischemic, negative values indicate lower methylation rates in MVM relative to SMVischemic."
+
+- "`logCPM` is the average log2-counts per million, the average taken over all libraries used in the experiment."
+
+- "`LR` is the likelihood ratio statistics (larger LR, smaller p-value)"
+
+- "`PValue` probability of obtaining results at least as extreme as the results actually observed, under the assumption that the null hypothesis is correct"
+
+- "`BH` is Benjamini & Hochberg corrected p-values"
+
+- "`bonferroni` Bonferroni corrected p-values"
+
+- "The columns with the format `#-Me` or `#-Un` indicate the methylated and unmethylated counts at a given locus for a particular sample."
+
+- "`Chr` is the chromosome of the locus"
+
+- "`Locus` is the position of the locus on the chromosome indicated in the `Chr` column."
+
+- "The columns with the format `methylated_proportion_#` indicate the proportion of methylated counts at a given loci for a particular sample, calculated as `methylated counts / (unmethylated counts + methylated counts)` for each sample and loci."
+
+- "`TSS_start` indicates the TSS location nearest to the methylation loci shown."
+
+- "`uniprot_gn_symbol` is the gene symbol (if available) associated with each TSS"
+
+- "`ensembl_gene_id` is the Ensembl gene ID associated with each TSS"
+
+- "`gene_start` and `gene_end` are the start and end genomic positions for each gene."
 

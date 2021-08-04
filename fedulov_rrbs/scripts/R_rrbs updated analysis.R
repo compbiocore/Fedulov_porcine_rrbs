@@ -2,17 +2,11 @@
 # title: "RRBS"
 # author: "Jordan"
 # date: "8/2/2021"
-# output: html_document
+# output: excel files
 #######################
 
 
-# Notes: Do liberal, moderate, and conservative approaches - 3 analyses with results 
-
-# Look back at commands used to download pig genome and look at organism and version and use this with GenomicFeatures package to make txdb - are the genes I care about diff methylated 
-
-# Once you have differentially methylated loci, we will figure out how to annotate them 
-
-# Add exploratory data analysis using MDS 
+# We first unzipped cov.gz files and are starting from there using cov erage files (.cov files) 
 
 # Load necessary packages (make sure they are installed) 
 library(biomaRt)
@@ -39,8 +33,7 @@ targets_2 <- read_excel("targets.xlsx")
 names(targets_2)
 targets_2<-as.data.frame(targets_2[,-c(3,4,8)])
 head(targets_2)
-# Reference target file 
-# targets_jos <- read.table('targets_2.txt', sep = '\t', header = T) #targets and targets_2 change additive and control factors
+targets_2$sample <- as.numeric(substr(targets_2$sample, 4, nchar(targets_2$sample)))
 
 # import those files using readBismark2DGE (can be .cov or .cov.gz)
 files <- targets_2$file #these are the names of the cov files 
@@ -78,10 +71,7 @@ HasCoverage <- rowSums(Coverage >= 5) == 3 # requires that sum across methylated
 HasBoth <- rowSums(Me) > 0 & rowSums(Un) > 0 
 
 # Check sample size after filtering requirements are met 
-table(HasCoverage, HasBoth)
-
-# Check sample size after filtering requirements are met 
-table(HasCoverage, HasBoth)
+table(HasCoverage, HasBoth) # 63465
 
 # apply those coverage filters
 y <- yall[HasCoverage & HasBoth,, keep.lib.sizes=FALSE] 
@@ -95,9 +85,7 @@ table(y$genes$Chr)
 
 # make some output tables for later..
 library(dplyr)
-
 counts_and_genes <- inner_join(tibble::rownames_to_column(as.data.frame(y$counts), var = 'loci'), tibble::rownames_to_column(as.data.frame(y$genes), var = 'loci'))
-
 counts_and_genes$methylation_proportion_1 <- (counts_and_genes$'1-Me') / (counts_and_genes$'1-Me' + counts_and_genes$'1-Un')
 counts_and_genes$methylation_proportion_2 <- (counts_and_genes$'2-Me') / (counts_and_genes$'2-Me' + counts_and_genes$'2-Un')
 counts_and_genes$methylation_proportion_3 <- (counts_and_genes$'3-Me') / (counts_and_genes$'3-Me' + counts_and_genes$'3-Un')
@@ -119,17 +107,18 @@ counts_and_genes$methylation_proportion_22 <- (counts_and_genes$'22-Me') / (coun
 
 # Group var has your 6 groups - we use a one-way layout for simplicity and given our research questions 
 
-targets$groups <- c(
-  'groupSMVnormal','groupSMVnormal', 'groupSMVnormal', 
+targets_2$groups <- c(
+  'groupSMVnormal','groupSMVnormal', 'groupSMVnormal',
   'groupSMVischemic','groupSMVischemic','groupSMVischemic',
   'MVM', 'MVM', 'MVM',
   'HVM', 'HVM', 'HVM',
   'groupHSMVnormal', 'groupHSMVnormal', 'groupHSMVnormal',
   'groupHSMVischemic', 'groupHSMVischemic', 'groupHSMVischemic')
 
-targets$groups <- gsub(" ", "", targets$groups, fixed = TRUE)
+targets_2$groups <- gsub(" ", "", targets_2$groups, fixed = TRUE)
+str(targets_2)
 
-design <- modelMatrixMeth(model.matrix(~ 0 + groups, data=targets))
+design <- modelMatrixMeth(model.matrix(~ 0 + groups, data=targets_2))
 design
 
 # Estimate dispersion and model 
@@ -146,18 +135,17 @@ SMVisch_vs_SMVnormal
 HSMVisch_vs_HSMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsgroupHSMVnormal - groupsgroupHSMVischemic, levels=design)) 
 HSMVisch_vs_HSMVnormal
 
-# Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic 
-#diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsgroupSMVnormal - groupsgroupSMVischemic) - (groupsgroupHSMVnormal - groupsgroupHSMVischemic), levels=design)) 
-#diffisch_vs_diffnormal
+# Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic
+diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsgroupSMVnormal - groupsgroupSMVischemic) - (groupsgroupHSMVnormal - groupsgroupHSMVischemic), levels=design))
+diffisch_vs_diffnormal
 
 # Research Question 4 - MVM vs SMV ischemic 
-MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsMVM- groupsgroupSMVischemic, levels=design)) 
+MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsMVM - groupsgroupSMVischemic, levels=design)) 
 MVM_vs_SMVischemic
 
 # Research Question 5 - HVM vs HSMV ischemic 
 HVM_vs_HSMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHVM - groupsgroupHSMVischemic, levels=design)) 
 HVM_vs_HSMVischemic
-
 
 # Add corrected p-value columns
 
@@ -165,13 +153,15 @@ HVM_vs_HSMVischemic
 SMVisch_vs_SMVnormal$table$BH <- p.adjust(SMVisch_vs_SMVnormal$table$PValue, method = "BH")
 SMVisch_vs_SMVnormal$table$bonferroni <- p.adjust(SMVisch_vs_SMVnormal$table$PValue, method = "bonferroni")
 SMVisch_vs_SMVnormal
+topTags(SMVisch_vs_SMVnormal)
+summary(decideTests(SMVisch_vs_SMVnormal))
 
 # Research Question 2 - HSMV normal vs HSMV ischemic 
 HSMVisch_vs_HSMVnormal$table$BH <- p.adjust(HSMVisch_vs_HSMVnormal$table$PValue, method = "BH")
 HSMVisch_vs_HSMVnormal$table$bonferroni <- p.adjust(HSMVisch_vs_HSMVnormal$table$PValue, method = "bonferroni")
 HSMVisch_vs_HSMVnormal 
 
-# Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic 
+# Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic
 diffisch_vs_diffnormal$table$BH <- p.adjust(diffisch_vs_diffnormal$table$PValue, method = "BH")
 diffisch_vs_diffnormal$table$bonferroni <- p.adjust(diffisch_vs_diffnormal$table$PValue, method = "bonferroni")
 diffisch_vs_diffnormal
@@ -191,9 +181,10 @@ HVM_vs_HSMVischemic
 library("biomaRt")
 ss_mart <- useMart("ensembl", dataset = "sscrofa_gene_ensembl")
 
-attributes <- listAttributes(ss_mart)
-attributes[grep("symbol", attributes$description, ignore.case = TRUE), ]
-attributes[grep("transcription", attributes$description, ignore.case = TRUE), ]
+#attributes <- listAttributes(ss_mart)
+#attributes[grep("symbol", attributes$description, ignore.case = TRUE), ]
+#attributes[grep("transcription", attributes$description, ignore.case = TRUE), ]
+#attributes[grep("vgnc", attributes$description, ignore.case = TRUE), ]
 
 ss_tss <- getBM(attributes = c("transcription_start_site", 
                                "chromosome_name", 
@@ -204,70 +195,81 @@ ss_tss <- getBM(attributes = c("transcription_start_site",
                                "uniprot_gn_symbol"), 
                 mart = ss_mart)
 
+ss_tss_2 <- getBM(attributes = c("transcription_start_site", 
+                                 "chromosome_name", 
+                                 "start_position",
+                                 "end_position",
+                                 "hgnc_symbol",
+                                 "entrezgene_id",
+                                 "description"), 
+                  mart = ss_mart)
+
 ss_tss <- as.data.frame(ss_tss)
-ss_tss$transcription_end_site <- (ss_tss$transcription_start_site + 1)
-ss_tss_gr <- makeGRangesFromDataFrame(ss_tss, start.field = 'transcription_start_site', end.field = 'transcription_end_site', ignore.strand = T)
+ss_tss_2 <- as.data.frame(ss_tss_2)
+ss_tss_all <- inner_join(ss_tss, ss_tss_2, by = c("transcription_start_site", "chromosome_name", "start_position", "end_position"))
+ss_tss <- ss_tss_all
 
-ss_tss_gr$uniprot_gn_symbol <- ss_tss$uniprot_gn_symbol
+#find and replace the 'strand' column so that -1 is - and 1 is +
+library(stringr)
+ss_tss$strand <- str_replace(string = ss_tss$strand, pattern = '-1', replacement = '-')
+ss_tss$strand <- str_replace(string = ss_tss$strand, pattern = '1', replacement = '+')
+
+#filter so we only have chromosomes
+ss_tss_filt <- dplyr::filter(ss_tss, chromosome_name=='1' |  chromosome_name=='2' |chromosome_name=='3' |chromosome_name=='4' |chromosome_name=='5' |chromosome_name=='6' |chromosome_name=='7' |chromosome_name=='8' |chromosome_name=='9' |chromosome_name=='10' |chromosome_name=='11' |chromosome_name=='12' |chromosome_name=='13' |chromosome_name=='14' |chromosome_name=='15' |chromosome_name=='16' |chromosome_name=='17' |chromosome_name=='18' |chromosome_name=='X' |chromosome_name=='Y')
+ss_tss <- ss_tss_filt
+
+# turn to granges
+ss_tss_gr <- makeGRangesFromDataFrame(ss_tss, start.field = 'start_position', end.field = 'end_position')
+
+# add metadata
+ss_tss_gr$transcription_start_site <- ss_tss$transcription_start_site
 ss_tss_gr$ensembl_gene_id <- ss_tss$ensembl_gene_id
-ss_tss_gr$gene_start <- ss_tss$start_position
-ss_tss_gr$gene_end <- ss_tss$end_position
+ss_tss_gr$uniprot_gn_symbol <- ss_tss$symbol
+ss_tss_gr$embl <- ss_tss$embl
+ss_tss_gr$hgnc_symbol <- ss_tss$hgnc_symbol
+ss_tss_gr$uniprot_gn_symbol <- ss_tss$uniprot_gn_symbol
+ss_tss_gr$entrezgene_id <- ss_tss$entrezgene_id
 
-#get all the genes used in  the DML analysis..
+#get all the loci used in  the DML analysis..
 y_loc <- as.data.frame(y$genes)
 y_loc$start <- y_loc$Locus
-y_loc$end <- (y_loc$start + 1)
 row.names(y_loc) <- NULL
 
-y_gr <- makeGRangesFromDataFrame(y_loc, 
-                                 ignore.strand = T)
+#turn them into granges
+y_gr <- makeGRangesFromDataFrame(y_loc, start.field = 'Locus', end.field = 'Locus')
 
-#y_loc and y_gr are the methylation sites
+#y_gr is the methylation sites
 #ss_tss_gr is all the TSS and associated gene symbols, ids, and ranges
 
-#use nearest function in GenomicRanges
-y_nearest_tss <- nearest(y = y_gr,
-                         x = ss_tss_gr)
+#use distancetonearest function in GenomicRanges
+dtn <- as.data.frame(distanceToNearest(x = y_gr, subject = ss_tss_gr, select = 'all'))
 
-dtn <- as.data.frame(distanceToNearest(x = y_gr, subject = ss_tss_gr, ignore.strand=T))
-
-y_gr$distance <- dtn$distance
-y_gr$subjectHits <- dtn$subjectHits
+#subjectHits column is the index row of the nearest TSS in the S. scrofa genome data
+#queryHits column is the index row of the query data (the loci we have methylation info for)
 
 #the distance function returns the row indices, use the slice function to pull them out of the y_gr object
-tss_slice <- as.data.frame(ss_tss_gr) %>% slice(y_gr$subjectHits)
-y_gr_df <- as.data.frame(y_gr)
+subject_slice_dtn <- as.data.frame(ss_tss_gr) %>% slice(dtn$subjectHits)
+tss_slice <- as.data.frame(ss_tss_gr) %>% slice(dtn$subjectHits) %>% rename(gene_start = start, gene_end = end, gene_width = width) %>% dplyr::select(-seqnames)
+y_slice <- as.data.frame(y_gr) %>% slice(dtn$queryHits)
+y_slice <- cbind(y_slice, dtn)
 
-#add other info like gene symbol, etc.
-y_gr_df$TSS_start <- tss_slice$start
-y_gr_df$distance <- tss_slice$distance
-y_gr_df$uniprot_gn_symbol <- tss_slice$uniprot_gn_symbol
-y_gr_df$ensembl_gene_id <- tss_slice$ensembl_gene_id
-y_gr_df$gene_start <- tss_slice$gene_start
-y_gr_df$gene_end <- tss_slice$gene_end
-
-#make a new 'locus' column to match whats in the results tables
-y_gr_df <- unite(y_gr_df, col = 'loci', sep = '-', seqnames:start)
-
-rownames(y_gr_df) <- y_gr_df$locus
-
+# bind y_slice and tss_slice
+y_tss_slice <- cbind(y_slice, tss_slice) 
+y_tss_slice$queryHits <- NULL 
+y_tss_slice$subjectHits <- NULL 
+library(tidyr)
+y_tss_slice <- y_tss_slice %>% tidyr::unite("loci", seqnames:start, sep = '-')
 
 #################
 # Make tables 
 #################
-
-y_gr_df$end <- NULL
-y_gr_df$width <- NULL
-y_gr_df$strand <- NULL
-y_gr_df$subjectHits <- NULL
-
 
 # Question 1 
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'loci')
 # add counts
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, y_gr_df, by = c('loci' = 'locus'))
+SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, y_tss_slice, by = 'loci')
 # filter results based on on nominal p-value
 SMVisch_vs_SMVnormal_results_filtered <- SMVisch_vs_SMVnormal_results %>% dplyr::filter(PValue < 0.01)
 nrow(SMVisch_vs_SMVnormal_results_filtered)
@@ -278,29 +280,29 @@ HSMVisch_vs_HSMVnormal_results <- data.frame(HSMVisch_vs_HSMVnormal$table) %>% t
 # add counts
 HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, y_gr_df, by = c('loci' = 'locus'))
+HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, y_tss_slice, by = 'loci')
 # filter results based on on nominal p-value
 HSMVisch_vs_HSMVnormal_results_filtered <- HSMVisch_vs_HSMVnormal_results %>% dplyr::filter(PValue < 0.01)
 nrow(HSMVisch_vs_HSMVnormal_results_filtered)
 HSMVisch_vs_HSMVnormal_results_filtered
 
-# # Question 3 
-# diffisch_vs_diffnormal_results <- data.frame(diffisch_vs_diffnormal$table) %>% tibble::rownames_to_column(var = 'loci')
-# # add counts
-# diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, counts_and_genes, by = 'loci')
-# #add annotations from `y_gr_df`
-# diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, y_gr_df, by = c('loci' = 'locus'))
-# # filter results based on on nominal p-value
-# diffisch_vs_diffnormal_results_filtered <- diffisch_vs_diffnormal_results %>% dplyr::filter(PValue < 0.01)
-# nrow(diffisch_vs_diffnormal_results_filtered)
-# diffisch_vs_diffnormal_results_filtered
+# Question 3
+diffisch_vs_diffnormal_results <- data.frame(diffisch_vs_diffnormal$table) %>% tibble::rownames_to_column(var = 'loci')
+# add counts
+diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, counts_and_genes, by = 'loci')
+#add annotations from `y_gr_df`
+diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, y_tss_slice, by = 'loci')
+# filter results based on on nominal p-value
+diffisch_vs_diffnormal_results_filtered <- diffisch_vs_diffnormal_results %>% dplyr::filter(PValue < 0.01)
+nrow(diffisch_vs_diffnormal_results_filtered)
+diffisch_vs_diffnormal_results_filtered
 
 # Question 4 
 MVM_vs_SMVischemic_results <- data.frame(MVM_vs_SMVischemic$table) %>% tibble::rownames_to_column(var = 'loci')
 # add counts
 MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, y_gr_df, by = c('loci' = 'locus'))
+MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, y_tss_slice, by = 'loci')
 # filter results based on on nominal p-value
 MVM_vs_SMVischemic_results_filtered <- MVM_vs_SMVischemic_results %>% dplyr::filter(PValue < 0.01)
 nrow(MVM_vs_SMVischemic_results_filtered)
@@ -311,12 +313,11 @@ HVM_vs_HSMVischemic_results <- data.frame(HVM_vs_HSMVischemic$table) %>% tibble:
 # add counts
 HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, counts_and_genes, by = 'loci')
 #add annotations from `y_gr_df`
-HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, y_gr_df, by = c('loci' = 'locus'))
+HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, y_tss_slice, by = 'loci')
 # filter results based on on nominal p-value
 HVM_vs_HSMVischemic_results_filtered <- HVM_vs_HSMVischemic_results %>% dplyr::filter(PValue < 0.01)
 nrow(HVM_vs_HSMVischemic_results_filtered)
 HVM_vs_HSMVischemic_results_filtered
-
 
 
 # Write worksheets/excel
@@ -344,17 +345,23 @@ readme_sheet <- rbind(readme_glm, readme_loci, readme_logFC, readme_logCPM, read
 
 list_1 <- list(readme_sheet, SMVisch_vs_SMVnormal_results_filtered)
 names(list_1) <- c("readme", "SMVisch_vs_SMVnormal")
-write.xlsx(list_1, file = '/home/rstudio/dat/SMVisch_vs_SMVnormal_results_filtered.xlsx')
+getwd()
+setwd("/Users/jordan/Desktop")
+write.xlsx(list_1, file = 'SMVisch_vs_SMVnormal_results_filtered.xlsx')
 
 list_2 <- list(readme_sheet, HSMVisch_vs_HSMVnormal_results_filtered)
 names(list_2) <- c("readme", "HSMVisch_vs_HSMVnormal")
-write.xlsx(list_2, file = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_results_filtered.xlsx')
+write.xlsx(list_2, file = 'HSMVisch_vs_HSMVnormal_results_filtered.xlsx')
 
-# list_3 <- list(readme_sheet, diffisch_vs_diffnormal_results_filtered)
-# names(list_3) <- c("readme", "diffisch_vs_diffnormal")
-# write.xlsx(list_3, file = '/home/rstudio/dat/diffisch_vs_diffnormal_results_filtered.xlsx')
+list_3 <- list(readme_sheet, diffisch_vs_diffnormal_results_filtered)
+names(list_3) <- c("readme", "diffisch_vs_diffnormal")
+write.xlsx(list_3, file = 'diffisch_vs_diffnormal_results_filtered.xlsx')
 
-list_4 <- list(readme_sheet, HVM_vs_HSMVischemic_results_filtered)
-names(list_4) <- c("readme", "HVM_vs_HSMVischemic")
-write.xlsx(list_4, file = '/home/rstudio/dat/HVM_vs_HSMVischemic_results_filtered.xlsx')
+list_4 <- list(readme_sheet, MVM_vs_SMVischemic_results_filtered)
+names(list_4) <- c("readme", "MVM_vs_SMVischemic")
+write.xlsx(list_4, file = 'MVM_vs_SMVischemic_results_filtered.xlsx')
+
+list_5 <- list(readme_sheet, HVM_vs_HSMVischemic_results_filtered)
+names(list_5) <- c("readme", "HVM_vs_HSMVischemic")
+write.xlsx(list_5, file = 'HVM_vs_HSMVischemic_results_filtered.xlsx')
 
