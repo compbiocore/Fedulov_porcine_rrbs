@@ -6,7 +6,7 @@ This file contains the steps for re-producing the porcine rrbs analysis, outlini
 
 All of the sequencing files for this project can be found in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files`. 
 
-# Converting Reference Genome
+## Converting Reference Genome
 
 First, we made the Bismark genome index using: 
 
