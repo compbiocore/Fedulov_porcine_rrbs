@@ -71,7 +71,7 @@ sbatch bismark_report.sh
 sbatch bam2nuc.sh
 ```
 
-# Downstream R analysis 
+## Downstream R analysis 
 
 After this point, we used the bam coverage files to perform analyses in R. The code for the R analysis can be found in the `R_rrbs_updated analysis.R` file. For our downstream analysis, genes were filtered such that only CpGs with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis. Additionally, CpGs that were never methylated or always methylated were filtered out, as these provide no information about differential methylation. The resulting sample size after filtering was 84,999.
 
