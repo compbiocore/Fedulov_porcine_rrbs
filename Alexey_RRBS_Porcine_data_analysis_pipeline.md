@@ -16,7 +16,7 @@ sbatch rrbs_genome.sh
 
 ## Initial QC
 
-Secondly, we ran a few QC metrics using the `rrbs_fastqc.sh` script, which will run fastqc on the fastq sequencing files (i.e., the raw reads): 
+Secondly, we ran a few QC metrics on the fastq sequencing files (i.e., the raw reads): 
 
 ```{bash}
 sbatch rrbs_fastqc.sh
