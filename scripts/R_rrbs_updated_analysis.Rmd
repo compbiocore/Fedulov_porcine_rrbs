@@ -4,6 +4,20 @@ author: "Joselynn"
 date: "7/22/2021"
 output: html_document
 ---
+# Some genes have duplicate rows -- for example, ENSSSCG00000017809 is appearing more than once. Where are they coming from? Is it from the Entrez gene IDs? 
+
+# Transfac is a DB with transcription factor binding sites -- any others for porcine?
+
+# Issue #2 is with the comparisons -- some of them are pretty similar, maybe de-duplicating will help.
+
+# print the pivot_longer tables to CSV and upload them to the google drive just incase folks want to make their own heatmaps.
+
+# in some cases, the m-value is 0. What does this mean? in some cases, if the methylated and unmethylated counts are 0, the m-value is still 0 but we should distinguish between these low coverage samples where there's no data (ND).
+
+# Add some bubble or volcano plots to show the absolute expression vlue vs foldchange/mvalue
+
+
+
 
 ```{r, include = FALSE}
 library("edgeR")
@@ -249,6 +263,12 @@ counts_and_genes <- counts_and_genes %>% relocate('RH-21_M-value', .after = 'RH-
 counts_and_genes <- counts_and_genes %>% relocate('RH-22_M-value', .after = 'RH-22-Un')
 
 ```
+
+```{r}
+dplyr::filter(counts_and_genes, ensembl_gene_id == 'ENSSSCG00000017809')
+```
+
+
 
 ```{r}
 # Design matrix w a one-way layout
