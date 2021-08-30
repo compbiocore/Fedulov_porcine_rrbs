@@ -1,19 +1,19 @@
-sample	group	diet	tissue	injection	name	coverage
-1	I	normal	healthy	saline	SMV_normal	/home/rstudio/dat/Rh-1_R1_001_tr_bismark_bt2.bismark.cov
-2	I	normal	healthy	saline	SMV_normal	/home/rstudio/dat/Rh-2_R1_001_tr_bismark_bt2.bismark.cov
-3	I	normal	healthy	saline	SMV_normal	/home/rstudio/dat/Rh-3_R1_001_tr_bismark_bt2.bismark.cov
-4	II	normal	ischemic	saline	SMV_ischemic	/home/rstudio/dat/Rh-4_R1_001_tr_bismark_bt2.bismark.cov
-5	II	normal	ischemic	saline	SMV_ischemic	/home/rstudio/dat/Rh-5_R1_001_tr_bismark_bt2.bismark.cov
-6	II	normal	ischemic	saline	SMV_ischemic	/home/rstudio/dat/Rh-6_R1_001_tr_bismark_bt2.bismark.cov
-7	III	normal	ischemic	microvesicle	MVM	/home/rstudio/dat/Rh-7_R1_001_tr_bismark_bt2.bismark.cov
-8	III	normal	ischemic	microvesicle	MVM	/home/rstudio/dat/Rh-8_R1_001_tr_bismark_bt2.bismark.cov
-10	III	normal	ischemic	microvesicle	MVM	/home/rstudio/dat/Rh-10_R1_001_tr_bismark_bt2.bismark.cov
-11	IV	high_fat	ischemic	microvesicle	HVM	/home/rstudio/dat/Rh-11_R1_001_tr_bismark_bt2.bismark.cov
-12	IV	high_fat	ischemic	microvesicle	HVM	/home/rstudio/dat/Rh-12_R1_001_tr_bismark_bt2.bismark.cov
-14	IV	high_fat	ischemic	microvesicle	HVM	/home/rstudio/dat/Rh-14_R1_001_tr_bismark_bt2.bismark.cov
-15	V	high_fat	healthy	saline	HSMV_normal	/home/rstudio/dat/Rh-15_R1_001_tr_bismark_bt2.bismark.cov
-16	V	high_fat	healthy	saline	HSMV_normal	/home/rstudio/dat/Rh-16_R1_001_tr_bismark_bt2.bismark.cov
-18	V	high_fat	healthy	saline	HSMV_normal	/home/rstudio/dat/Rh-18_R1_001_tr_bismark_bt2.bismark.cov
-19	VI	high_fat	ischemic	saline	HSMC_ischemic	/home/rstudio/dat/Rh-19_R1_001_tr_bismark_bt2.bismark.cov
-21	VI	high_fat	ischemic	saline	HSMC_ischemic	/home/rstudio/dat/Rh-21_R1_001_tr_bismark_bt2.bismark.cov
-22	VI	high_fat	ischemic	saline	HSMC_ischemic	/home/rstudio/dat/Rh-22_R1_001_tr_bismark_bt2.bismark.cov
+sample	group	source_name	organism	tissue	diet	surgery	molecule	file
+RH-1	SMV normal	Myocardium	Sus scrofa	Normal myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-1_R1_001_tr_bismark_bt2.bismark.cov
+RH-2	SMV normal	Myocardium	Sus scrofa	Normal myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-2_R1_001_tr_bismark_bt2.bismark.cov
+RH-3	SMV normal	Myocardium	Sus scrofa	Normal myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-3_R1_001_tr_bismark_bt2.bismark.cov
+RH-4	SMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-4_R1_001_tr_bismark_bt2.bismark.cov
+RH-5	SMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-5_R1_001_tr_bismark_bt2.bismark.cov
+RH-6	SMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-6_R1_001_tr_bismark_bt2.bismark.cov
+RH-7	MVM	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-7_R1_001_tr_bismark_bt2.bismark.cov
+RH-8	MVM	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-8_R1_001_tr_bismark_bt2.bismark.cov
+RH-10	MVM	Myocardium	Sus scrofa	Ischemic myocardium	Normal diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-10_R1_001_tr_bismark_bt2.bismark.cov
+RH-11	HVM	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-11_R1_001_tr_bismark_bt2.bismark.cov
+RH-12	HVM	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-12_R1_001_tr_bismark_bt2.bismark.cov
+RH-14	HVM	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Microvesicle Injection	genomic DNA	/home/rstudio/dat/Rh-14_R1_001_tr_bismark_bt2.bismark.cov
+RH-15	HSMV normal	Myocardium	Sus scrofa	Normal myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-15_R1_001_tr_bismark_bt2.bismark.cov
+RH-16	HSMV normal	Myocardium	Sus scrofa	Normal myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-16_R1_001_tr_bismark_bt2.bismark.cov
+RH-18	HSMV normal	Myocardium	Sus scrofa	Normal myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-18_R1_001_tr_bismark_bt2.bismark.cov
+RH-19	HSMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-19_R1_001_tr_bismark_bt2.bismark.cov
+RH-21	HSMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-21_R1_001_tr_bismark_bt2.bismark.cov
+RH-22	HSMV ischemic	Myocardium	Sus scrofa	Ischemic myocardium	High fat diet	Sham surgery	genomic DNA	/home/rstudio/dat/Rh-22_R1_001_tr_bismark_bt2.bismark.cov
