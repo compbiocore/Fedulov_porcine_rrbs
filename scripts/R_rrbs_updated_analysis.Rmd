@@ -28,6 +28,7 @@ library("openxlsx")
 library("biomaRt")
 library("dplyr")
 library("GenomicRanges")
+library("stringr")
 ```
 
 ```{r}
@@ -151,7 +152,9 @@ ss_tss <- as.data.frame(ss_tss)
 ss_tss_2 <- as.data.frame(ss_tss_2)
 ss_tss_all <- inner_join(ss_tss, ss_tss_2, by = c("transcription_start_site", "chromosome_name", "start_position", "end_position"))
 ss_tss <- ss_tss_all
+```
 
+```{r}
 #find and replace the 'strand' column so that -1 is - and 1 is +
 library(stringr)
 ss_tss$strand <- str_replace(string = ss_tss$strand, pattern = '-1', replacement = '-')
@@ -209,12 +212,15 @@ ypr <- rowsum(yIP, yIP$genes$ensembl_gene_id, reorder=FALSE)
 
 #re-set library sizes based to be the average of the total read counts for the methylated and unmethylated libraries.
 
+Me <- ypr$counts[, Methylation=="Me"]
+Un <- ypr$counts[, Methylation=="Un"]
+
 TotalLibSizepr <- 0.5*ypr$samples$lib.size[Methylation=="Me"] + 0.5*ypr$samples$lib.size[Methylation=="Un"]
 ypr$samples$lib.size <- rep(TotalLibSizepr, each=2)
 ypr$samples
 
-Me <- ypr$counts[, Methylation=="Me"]
-Un <- ypr$counts[, Methylation=="Un"]
+#Me <- ypr$counts[, Methylation=="Me"]
+#Un <- ypr$counts[, Methylation=="Un"]
 
 M01 <- data.frame(log2((Me + .01) / (Un + .01)))
 M01$ensembl_gene_id <- rownames(M01)
@@ -226,10 +232,10 @@ save.image('/home/rstudio/dat/session6.Rdata')
 ```{r}
 #In microarray methylation studies, a common measure of methylation level is the M-value, which is defined as M = log 2 {(Me + α) /(Un + α)} where Me and Un are the methylated and unmethylated intensities and α is some suitable offset to avoid taking logarithms of zero 39. The M-value can be interpreted as the base2 logit transformation of the proportion of methylated signal at each locus. (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5747346/)
 
-load('/home/rstudio/dat/session6.Rdata')
+#load('/home/rstudio/dat/session6.Rdata')
 
 # make some output tables for later..
-library(dplyr)
+#library(dplyr)
 
 counts_and_genes <- inner_join(tibble::rownames_to_column(as.data.frame(ypr$counts), var = 'loci'), tibble::rownames_to_column(as.data.frame(ypr$genes), var = 'loci'))
 counts_and_genes$nearest_gene_start <- NULL
@@ -261,7 +267,7 @@ counts_and_genes <- counts_and_genes %>% relocate('RH-18_M-value', .after = 'RH-
 counts_and_genes <- counts_and_genes %>% relocate('RH-19_M-value', .after = 'RH-19-Un')
 counts_and_genes <- counts_and_genes %>% relocate('RH-21_M-value', .after = 'RH-21-Un')
 counts_and_genes <- counts_and_genes %>% relocate('RH-22_M-value', .after = 'RH-22-Un')
-
+counts_and_genes$hgnc_symbol <- NULL
 ```
 
 ```{r}
@@ -328,22 +334,106 @@ HVM_vs_HSMVischemic$table$bonferroni <- p.adjust(HVM_vs_HSMVischemic$table$PValu
 # Make tables 
 #################
 #get entrez IDs
-entrez_ids <- getBM(attributes = c("ensembl_gene_id", "entrezgene_id"), 
-                mart = ss_mart, 
-                values = counts_and_genes$ensembl_gene_id,
-                filters = 'ensembl_gene_id')
+ss_mart2 <- useMart('ENSEMBL_MART_ENSEMBL', dataset = 'sscrofa_gene_ensembl')
+
+g<-select(ss_mart2, keys=counts_and_genes$ensembl_gene_id, columns=c('entrezgene_id', 'ensembl_gene_id','hgnc_symbol'),
+  keytype='ensembl_gene_id', mirror = 'uswest.ensembl.org')
+
+entrez_ids <- aggregate(entrezgene_id ~., g, toString)
+
+dplyr::filter(entrez_ids, ensembl_gene_id == 'ENSSSCG00000017809')
+
+#  hgnc_symbol    ensembl_gene_id        entrezgene_id
+#1      GEMIN4 ENSSSCG00000017809 100522827, 100523693
+
+g2 <-select(ss_mart2, keys=counts_and_genes$ensembl_gene_id, columns=c('ensembl_gene_id','entrezgene_accession'),
+  keytype='ensembl_gene_id', mirror = 'uswest.ensembl.org')
+
+entrez_accessions <- aggregate(entrezgene_accession ~., g2, toString) 
+
+dplyr::filter(entrez_accessions, ensembl_gene_id == 'ENSSSCG00000017809')
+
+length(unique(entrez_accessions$ensembl_gene_id))
+length(unique(entrez_ids$ensembl_gene_id))
+
+entrez_info <- inner_join(entrez_ids, entrez_accessions)
+
+dplyr::filter(entrez_info, ensembl_gene_id == 'ENSSSCG00000017809')
+
+#https://www.ncbi.nlm.nih.gov/gene/100522827
+#https://www.ncbi.nlm.nih.gov/gene/100523693
+
+#Note that only https://www.ncbi.nlm.nih.gov/gene/100522827 has the ensembl ID on the descrption page.
+
+entrez_ids <- entrez_info 
+entrez_ids$hgnc_symbol <- NULL
+entrez_ids$hgnc_symbol <- entrez_ids$entrezgene_accession
+entrez_ids$entrezgene_accession <- NULL
+
+counts_and_genes$hgnc_symbol <- NULL
+```
+
+```{r}
+#need to fix counts and genes table so that situations where counts are 0 are encoded differently/clearly
+head(counts_and_genes)
+
+counts_and_genes_long <- pivot_longer(counts_and_genes, cols = -c(ensembl_gene_id))
+
+counts_and_genes_long_sep <- counts_and_genes_long %>% separate(name, c("RH","sample", "measure"), sep = "([-])")
 
 
+counts_and_genes_long_sep$sample <- str_replace(counts_and_genes_long_sep$sample, '_M', '')
+counts_and_genes_long_sep$measure  <- str_replace(counts_and_genes_long_sep$measure , 'value', 'M_value')
 
+counts_and_genes_wide <- pivot_wider(counts_and_genes_long_sep, id_cols = c('ensembl_gene_id', 'RH', 'sample'), names_from = 'measure', values_from = 'value' )
+
+
+counts_and_genes_wide$M_value_ne <- ifelse(((counts_and_genes_wide$Me==0) & (counts_and_genes_wide$Un==0)), 'not_expressed', counts_and_genes_wide$M_value)
+
+counts_and_genes_wide$M_value <- counts_and_genes_wide$M_value_ne
+
+counts_and_genes_wide$M_value_ne <- NULL
+
+counts_and_genes_wide$original_sample <- paste0(counts_and_genes_wide$RH, '-', counts_and_genes_wide$sample)
+counts_and_genes_wide$RH <- NULL
+counts_and_genes_wide$sample <- NULL
+counts_and_genes_wide$sample <- counts_and_genes_wide$original_sample
+counts_and_genes_wide$original_sample <- NULL
+
+counts_and_genes_wider_mvalues <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'M_value')
+counts_and_genes_wider_Me <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'Me')
+counts_and_genes_wider_Un <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'Un')
+
+
+counts_and_genes_wider_mvalues <- counts_and_genes_wider_mvalues %>% rename_at(vars(-ensembl_gene_id), paste0, "-M_values")
+counts_and_genes_wider_Me <- counts_and_genes_wider_Me %>% rename_at(vars(-ensembl_gene_id), paste0, "-Me")
+counts_and_genes_wider_Un <- counts_and_genes_wider_Un %>% rename_at(vars(-ensembl_gene_id), paste0, "-Un")
+
+
+counts_and_genes_wider <- inner_join(counts_and_genes_wider_Me, counts_and_genes_wider_Un)
+
+counts_and_genes_wider <- inner_join(counts_and_genes_wider, counts_and_genes_wider_mvalues)
+
+nrow(counts_and_genes_wider)
+
+counts_and_genes <- counts_and_genes_wider
+
+write.table(counts_and_genes, 'counts_and_genes.txt', row.names = F, sep = '\t')
+```
+
+```{r}
 # Question 1 
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
+
 # add annotations 
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, entrez_ids, by = 'ensembl_gene_id')
+
 # add the counts and M vals
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, counts_and_genes, by = 'ensembl_gene_id')
 
 # filter results based on on nominal p-value
 SMVisch_vs_SMVnormal_results_filtered <- SMVisch_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
+
 
 # Question 2 
 HSMVisch_vs_HSMVnormal_results <- data.frame(HSMVisch_vs_HSMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
@@ -392,7 +482,7 @@ save.image('/home/rstudio/dat/session7.Rdata')
 
 ```{r}
 #here's an example of how to make heatmaps from the normalized data tables:
-load('/home/rstudio/dat/session7.Rdata')
+
 
 library(ggplot2)
 library(viridis)
@@ -403,22 +493,20 @@ labels <- targets
 
 ```{r}
 #fix columns:
-SMVisch_vs_SMVnormal_results_filtered_long <- as.data.frame(SMVisch_vs_SMVnormal_results_filtered) %>% tidyr::pivot_longer(cols = starts_with('R'), names_to = "measurement", values_to = "value") 
-SMVisch_vs_SMVnormal_results_filtered_long <- separate(SMVisch_vs_SMVnormal_results_filtered_long, measurement, into = c('val1', 'val2'), sep = 3)
+
+SMVisch_vs_SMVnormal_results_filtered %>% dplyr::select(-matches('Me|Un'))
+
+dplyr::select(SMVisch_vs_SMVnormal_results_filtered, contains("Me|Un"))
+
+SMVisch_vs_SMVnormal_results_filtered_long <- SMVisch_vs_SMVnormal_results_filtered %>% dplyr::select(-matches('Me|Un')) %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value") 
+SMVisch_vs_SMVnormal_results_filtered_long <- separate(SMVisch_vs_SMVnormal_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 SMVisch_vs_SMVnormal_results_filtered_long$val1 <- NULL
-measurements <- gl(3,1,nrow(SMVisch_vs_SMVnormal_results_filtered_long), labels=c("Me_counts", "Un_counts", "M_value"))
-SMVisch_vs_SMVnormal_results_filtered_long$measurement <- measurements
-SMVisch_vs_SMVnormal_results_filtered_long <- separate(SMVisch_vs_SMVnormal_results_filtered_long, val2, into = c('sample', 'val3'), sep = '-')
-SMVisch_vs_SMVnormal_results_filtered_long$sample <- str_replace(SMVisch_vs_SMVnormal_results_filtered_long$sample, '_M', '')
-SMVisch_vs_SMVnormal_results_filtered_long$val3 <- str_replace(SMVisch_vs_SMVnormal_results_filtered_long$val3, 'value', 'M_value')
-SMVisch_vs_SMVnormal_results_filtered_long$measurement <- SMVisch_vs_SMVnormal_results_filtered_long$val3
-SMVisch_vs_SMVnormal_results_filtered_long$val3 <- NULL
-SMVisch_vs_SMVnormal_results_filtered_long$sample <- paste0('RH-',SMVisch_vs_SMVnormal_results_filtered_long$sample)
-SMVisch_vs_SMVnormal_results_filtered_long <- pivot_wider(SMVisch_vs_SMVnormal_results_filtered_long, names_from = 'measurement', values_from = 'value')
+SMVisch_vs_SMVnormal_results_filtered_long$sample <- paste0('RH-', SMVisch_vs_SMVnormal_results_filtered_long$sample)
 SMVisch_vs_SMVnormal_results_filtered_long <- inner_join(SMVisch_vs_SMVnormal_results_filtered_long, labels, by = 'sample')
-SMVisch_vs_SMVnormal_results_filtered_long$M_value <- as.numeric(str_trim(SMVisch_vs_SMVnormal_results_filtered_long$M_value, side = c("both")))
-SMVisch_vs_SMVnormal_results_filtered_long$Me <- as.numeric(str_trim(SMVisch_vs_SMVnormal_results_filtered_long$Me, side = c("both")))
-SMVisch_vs_SMVnormal_results_filtered_long$Un <- as.numeric(str_trim(SMVisch_vs_SMVnormal_results_filtered_long$Un, side = c("both")))
+```
+
+
+```{r}
 
 HSMVisch_vs_HSMVnormal_results_filtered_long <- as.data.frame(HSMVisch_vs_HSMVnormal_results_filtered) %>% tidyr::pivot_longer(cols = starts_with('R'), names_to = "measurement", values_to = "value") 
 HSMVisch_vs_HSMVnormal_results_filtered_long <- separate(HSMVisch_vs_HSMVnormal_results_filtered_long, measurement, into = c('val1', 'val2'), sep = 3)
@@ -499,7 +587,9 @@ SMVisch_vs_SMVnormal_results_filtered_long$ensembl_gene_id <-
            (unique(SMVisch_vs_SMVnormal_results_filtered_long$ensembl_gene_id)[
              order(SMVisch_vs_SMVnormal_results_filtered_long$logFC, method = 'radix')
              ]))
+```
 
+```{r}
 SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol <- 
   factor(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol, 
          levels = 
@@ -571,17 +661,21 @@ HVM_vs_HSMVischemic_results_filtered_long$hgnc_symbol <-
 
 ```{r}
 #then we plot
-ggplot(data = (SMVisch_vs_SMVnormal_results_filtered_long %>% filter(group == "SMVischemic" | group == "SMVnormal")),
+ggplot(data = (data.frame(SMVisch_vs_SMVnormal_results_filtered_long) %>% filter(group == "SMVischemic" | group == "SMVnormal")),
        mapping = aes(
          x = sample, 
          y = hgnc_symbol, 
-         fill = M_value)) +
+         fill = as.numeric(value))) +
   geom_tile() + 
   scale_fill_distiller(palette = "RdYlBu") +
   facet_grid(~group, scales = 'free')
 
-ggsave('/home/rstudio/dat/SMVisch_vs_SMVnormal_results_filtered_heatmap.png', device = 'png', height = 12)
 
+#ggsave('/home/rstudio/dat/SMVisch_vs_SMVnormal_results_filtered_heatmap.png', device = 'png', height = 12)
+```
+
+
+```{r}
 ggplot(data = (HSMVisch_vs_HSMVnormal_results_filtered_long %>% filter(group == "HSMVischemic" | group == "HSMVnormal")),
        mapping = aes(
          x = sample, 
