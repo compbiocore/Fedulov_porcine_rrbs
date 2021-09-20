@@ -127,23 +127,24 @@ y_glm_fit <- glmFit(y_glm_disp, design)
 
 # Contrasts of interest for our study 
 
-# Research Question 1 - SMV normal vs SMV ischemic 
-SMVisch_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsgroupSMVnormal - groupsgroupSMVischemic, levels=design)) 
+# Research Question 1 - SMV ischemic vs SMV normal (with SMV normal as reference group)
+SMVisch_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsgroupSMVischemic - groupsgroupSMVnormal, levels=design)) 
 SMVisch_vs_SMVnormal
 
-# Research Question 2 - HSMV normal vs HSMV ischemic 
-HSMVisch_vs_HSMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsgroupHSMVnormal - groupsgroupHSMVischemic, levels=design)) 
+# Research Question 2 - HSMV ischemic vs HSMV normal (with HSMV normal as reference group)
+HSMVisch_vs_HSMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsgroupHSMVischemic - groupsgroupHSMVnormal, levels=design)) 
 HSMVisch_vs_HSMVnormal
 
-# Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic
-diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsgroupSMVnormal - groupsgroupSMVischemic) - (groupsgroupHSMVnormal - groupsgroupHSMVischemic), levels=design))
+# Research Question 3 - HSMV ischemic vs HSMV normal vs SMV ischemic vs SMV normal (difference in difference with the difference between 
+# SMV ischemic and SMV normal being the reference)
+diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsgroupHSMVischemic - groupsgroupHSMVnormal) - (groupsgroupSMVischemic - groupsgroupSMVnormal), levels=design))
 diffisch_vs_diffnormal
 
-# Research Question 4 - MVM vs SMV ischemic 
+# Research Question 4 - MVM vs SMV ischemic (with SMV ischemic as reference)
 MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsMVM - groupsgroupSMVischemic, levels=design)) 
 MVM_vs_SMVischemic
 
-# Research Question 5 - HVM vs HSMV ischemic 
+# Research Question 5 - HVM vs HSMV ischemic (with HSMV ischemic as reference)
 HVM_vs_HSMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHVM - groupsgroupHSMVischemic, levels=design)) 
 HVM_vs_HSMVischemic
 
