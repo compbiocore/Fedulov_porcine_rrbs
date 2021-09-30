@@ -903,70 +903,11 @@ ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/d
 ```
 
 
-```{r}
-```
 
 
 ```{r}
 
-```
-
-
-```{r}
-ggplot(data = (HSMVisch_vs_HSMVnormal_results_filtered_long %>% filter(group == "HSMVischemic" | group == "HSMVnormal")),
-       mapping = aes(
-         x = sample, 
-         y = hgnc_symbol, 
-         fill = M_value)) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free')
-
-ggsave('/home/rstudio/dat/HSMVisch_vs_HSMVnormal_results_filtered_heatmap.png', device = 'png', height = 12)
-
-
-ggplot(data = (diffisch_vs_diffnormal_results_filtered_long %>% filter(group == "SMVischemic" | group == "SMVnormal" | group == "HSMVischemic" | group == "HSMVnormal")),
-       mapping = aes(
-         x = sample, 
-         y = hgnc_symbol, 
-         fill = M_value)) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free')
-
-ggsave('/home/rstudio/dat/diffisch_vs_diffnormal_results_filtered_heatmap.png', device = 'png', height = 12)
-
-
-ggplot(data = (MVM_vs_SMVischemic_results_filtered_long %>% filter(group == "MVM" | group == "SMVischemic")),
-       mapping = aes(
-         x = sample, 
-         y = hgnc_symbol, 
-         fill = M_value)) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free')
-
-ggsave('/home/rstudio/dat/MVM_vs_SMVischemic_results_filtered_heatmap.png', device = 'png', height = 12)
-
-
-ggplot(data = (HVM_vs_HSMVischemic_results_filtered_long %>% filter(group == "HVM" | group == "HSMVischemic")),
-       mapping = aes(
-         x = sample, 
-         y = hgnc_symbol, 
-         fill = M_value)) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free')
-
-ggsave('/home/rstudio/dat/HVM_vs_HSMVischemic_results_filtered_heatmap.png', device = 'png', height = 12)
-
-
-
-```
-
-```{r}
-
-#save.image('/home/rstudio/dat/session9.Rdata')
+save.image('/home/rstudio/dat/session9.Rdata')
 load('/home/rstudio/dat/session9.Rdata')
 ```
 
@@ -996,35 +937,35 @@ readme_sheet <- rbind(readme_promoters, readme_dtn, readme_glm, readme_ensembl_g
 #write outputs
 list_1 <- list(readme_sheet, SMVisch_vs_SMVnormal_results, SMVisch_vs_SMVnormal_results_filtered)
 names(list_1) <- c('readme', 'SMVisch_vs_SMVnormal', 'SMVisch_vs_SMVnormal_filtered')
-write.xlsx(list_1, file = '/home/rstudio/dat/SMVisch_vs_SMVnormal_results.xlsx')
+write.xlsx(list_1, file = '/home/rstudio/dat/SMVisch_vs_SMVnormal_results.xlsx', overwrite = T)
 
 list_2 <- list(readme_sheet, HSMVisch_vs_HSMVnormal_results, HSMVisch_vs_HSMVnormal_results_filtered)
 names(list_2) <- c('readme', 'HSMVisch_vs_HSMVnormal', 'HSMVisch_vs_HSMVnormal_filtered')
-write.xlsx(list_2, file = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_results.xlsx')
+write.xlsx(list_2, file = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_results.xlsx', overwrite = T)
 
 list_3 <- list(readme_sheet, diffisch_vs_diffnormal_results, diffisch_vs_diffnormal_results_filtered)
 names(list_3) <- c('readme', 'diffisch_vs_diffnormal', 'diffisch_vs_diffnormal_filtered')
-write.xlsx(list_3, file = '/home/rstudio/dat/diffisch_vs_diffnormal_results.xlsx')
+write.xlsx(list_3, file = '/home/rstudio/dat/diffisch_vs_diffnormal_results.xlsx', overwrite = T)
 
 list_4 <- list(readme_sheet, MVM_vs_SMVischemic_results, MVM_vs_SMVischemic_results_filtered)
 names(list_4) <- c('readme', 'MVM_vs_SMVischemic', 'MVM_vs_SMVischemic_filtered')
-write.xlsx(list_4, file = '/home/rstudio/dat/MVM_vs_SMVischemic_results.xlsx')
+write.xlsx(list_4, file = '/home/rstudio/dat/MVM_vs_SMVischemic_results.xlsx', overwrite = T)
 
 list_5 <- list(readme_sheet, HVM_vs_HSMVischemic_results, HVM_vs_HSMVischemic_results_filtered)
 names(list_5) <- c('readme', 'HVM_vs_HSMVischemic', 'HVM_vs_HSMVischemic_filtered')
-write.xlsx(list_5, file = '/home/rstudio/dat/HVM_vs_HSMVischemic_results.xlsx')
+write.xlsx(list_5, file = '/home/rstudio/dat/HVM_vs_HSMVischemic_results.xlsx', overwrite = T)
 
 list_6 <- list(readme_sheet, shared_loci)
 names(list_6) <- c('readme', 'HSMV_and_SMV_filtered_shared')
-write.xlsx(list_6, file = '/home/rstudio/dat/both_filtered_HSMV_and_SMV.xlsx')
+write.xlsx(list_6, file = '/home/rstudio/dat/both_filtered_HSMV_and_SMV.xlsx', overwrite = T)
 
 list_7 <- list(readme_sheet, HSMV_only)
 names(list_7) <- c('readme', 'HSMV_only')
-write.xlsx(list_7, file = '/home/rstudio/dat/filtered_HSMV_only.xlsx')
+write.xlsx(list_7, file = '/home/rstudio/dat/filtered_HSMV_only.xlsx', overwrite = T)
 
 list_8 <- list(readme_sheet, SMV_only)
 names(list_8) <- c('readme', 'SMV_only')
-write.xlsx(list_8, file = '/home/rstudio/dat/filtered_SMV_only.xlsx')
+write.xlsx(list_8, file = '/home/rstudio/dat/filtered_SMV_only.xlsx', overwrite = T)
 
 #write.xlsx(shared_loci, file = '/home/rstudio/dat/both_HSMV_and_SMV.xlsx')
 #write.xlsx(HSMV_only, file = '/home/rstudio/dat/HSMV_effect_only.xlsx')
@@ -1035,7 +976,7 @@ write.xlsx(list_8, file = '/home/rstudio/dat/filtered_SMV_only.xlsx')
 nrow(SMVisch_vs_SMVnormal_results_filtered) #120
 nrow(HSMVisch_vs_HSMVnormal_results_filtered) #123
 nrow(diffisch_vs_diffnormal_results_filtered) #130
-nrow(MVM_vs_SMVischemic_results_filtered) #154
+nrow(MVM_vs_SMVischemic_results_filtered) #142
 nrow(HVM_vs_HSMVischemic_results_filtered) #125
 nrow(shared_loci) #4
 nrow(SMV_only) #116
