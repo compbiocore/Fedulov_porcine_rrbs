@@ -1,14 +1,48 @@
 # Fedulov RRBS porcine data analysis pipeline 
 
-This file contains the steps for re-producing the porcine rrbs analysis, outlining the order in which the scripts were ran and what was performed for downstream analyses. All scripts for the analyses can be found in the scripts folder of this repo. 
+This file contains the steps for re-producing the porcine rrbs analysis, outlining the order in which the scripts were ran and what was performed for downstream analyses. All scripts for the analyses can be found in the scripts folder.     
 
-## Data
 
-All of the sequencing files for this project can be found in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files`. 
+### Upstream analyses in Conda
+
+The upstream analysis portion of this analysis (everything up to and including the creation of the Bismark coverage files) was ran on Oscar in a conda environment. The conda environment can be re-created using the `dat/porcine_rrbs_conda.yml` file. 
+
+```{bash}
+conda env create -f porcine_rrbs_conda.yaml
+```
+
+And then activating the conda environment:
+```{bash}
+conda activate fedulov_rrbs
+```
+
+### Downstream analyses in Docker
+
+The downstream analyses were all run in a Docker container, which can be accessed by pulling the docker image:
+
+```{bash}
+docker pull compbiocore/woodsc:latest
+```
+
+And then running the container:
+
+```{bash}
+docker run --rm -p 8787:8787 -e USER=rstudio -e PASSWORD=yourpassword --volume ${PWD}:/home/rstudio rrbs:latest 
+```
+
+Opening a browser and navigating to `localhost:8787` and entering the USER and PASSWORD as indicated above will start up RStudio with all packages installed necessary for the downstream analysis.
+
+## Data Organization
+
+The raw data and intermediate analysis files are on Oscar in the `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs` directory.    
+
+
+All of the raw sequencing files for this project can be found on Oscar in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files`. 
+
 
 ## Converting Reference Genome
 
-First, we made the Bismark genome index using: 
+First, we made the Bismark genome index using the `bismark_genome_preparation` function in Bismark: 
 
 ```{bash}
 sbatch rrbs_genome.sh 
