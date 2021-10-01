@@ -279,6 +279,10 @@ y_glm_fit <- glmFit(y_glm_disp, design)
 ```{r}
 # Contrasts of interest for our study 
 
+#dummy test contrast
+contrast_test <- glmLRT(y_glm_fit, contrast = makeContrasts( (Sample1 + Sample3 + Sample5) - (Sample12 + Sample14 + Sample18), levels=design))
+
+
 # Research Question 1 - SMV ischemic vs SMV normal (with SMV normal as reference group)
 SMVisch_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsSMVischemic - groupsSMVnormal, levels=design)) 
 #SMVisch_vs_SMVnormal
@@ -306,6 +310,11 @@ MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVnorma
 
 ```{r}
 # Add corrected p-value columns
+
+#dummy test contrast
+contrast_test$table$BH <- p.adjust(contrast_test$PValue, method = "BH")
+contrast_test$table$bonferroni <- p.adjust(contrast_test$table$PValue, method = "bonferroni")
+
 
 # Research Question 1 - SMV normal vs SMV ischemic 
 SMVisch_vs_SMVnormal$table$BH <- p.adjust(SMVisch_vs_SMVnormal$table$PValue, method = "BH")
@@ -424,15 +433,28 @@ counts_and_genes <- counts_and_genes_wider
 write.table(counts_and_genes, 'counts_and_genes.txt', row.names = F, sep = '\t')
 ```
 ```{r}
+
+
+#dummy test contrast
+
+
+
+contrast_test_results <- data.frame(contrast_test$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
+# add annotations 
+contrast_test_results <- left_join(contrast_test_results, entrez_ids, by = 'ensembl_gene_id')
+# add the counts and M vals
+contrast_test_results <- left_join(contrast_test_results, counts_and_genes, by = 'ensembl_gene_id')
+# filter results based on on nominal p-value
+contrast_test_results_filtered <- contrast_test_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
+
+
+
 # Question 1 
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
-
 # add annotations 
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, entrez_ids, by = 'ensembl_gene_id')
-
 # add the counts and M vals
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, counts_and_genes, by = 'ensembl_gene_id')
-
 # filter results based on on nominal p-value
 SMVisch_vs_SMVnormal_results_filtered <- SMVisch_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 
@@ -981,5 +1003,7 @@ nrow(HVM_vs_HSMVischemic_results_filtered) #125
 nrow(shared_loci) #4
 nrow(SMV_only) #116
 nrow(HSMV_only) #119
+
+nrow(contrast_test_results_filtered) #329 so I think our results are 'real'
 ```
 
