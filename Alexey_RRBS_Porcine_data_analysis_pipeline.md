@@ -165,3 +165,28 @@ SMV_only <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered, HSMVisch_vs_
 ```
 
 
+```
+> nrow(SMVisch_vs_SMVnormal_results_filtered)
+[1] 120
+> nrow(HSMVisch_vs_HSMVnormal_results_filtered)
+[1] 123
+> nrow(diffisch_vs_diffnormal_results_filtered)
+[1] 130
+> nrow(MVM_vs_SMVischemic_results_filtered)
+[1] 154
+> nrow(HVM_vs_HSMVischemic_results_filtered)
+[1] 125
+> nrow(shared_loci)
+[1] 4
+> nrow(SMV_only)
+[1] 116
+> nrow(HSMV_only)
+[1] 119
+> nrow(HSMVnormal_vs_SMVnormal_results_filtered)
+[1] 142
+> nrow(contrast_test_results_filtered) #this is our 'dummy' contrast
+[1] 329
+
+
+```
+
