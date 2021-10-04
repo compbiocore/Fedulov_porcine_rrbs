@@ -115,9 +115,53 @@ We then used the `glmFit` function to fit a negative binomial generalized log-li
 
 The following contrasts were ran:
 
-`SMVisch_vs_SMVnormal` uses SMV normal as the reference group and contrasts it with the SMV ischemic group.
+# Research Question 1 - SMV ischemic vs SMV normal (with SMV normal as reference group)
+```
+SMVisch_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsSMVischemic - groupsSMVnormal, levels=design)) 
+```
 
+# Research Question 2 - HSMV ischemic vs HSMV normal (with HSMV normal as reference group)
+```
+HSMVisch_vs_HSMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVischemic - groupsHSMVnormal, levels=design)) 
+```
 
+# Research Question 3 - HSMV ischemic vs HSMV normal vs SMV ischemic vs SMV normal (difference in difference with the difference between SMV ischemic and SMV normal being the reference)
+```
+diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsHSMVischemic - groupsHSMVnormal) - (groupsSMVischemic - groupsSMVnormal), levels=design))
+```
 
+# Research Question 4 - MVM vs SMV ischemic (with SMV ischemic as reference)
+```
+MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsMVM - groupsSMVischemic, levels=design)) 
+```
+
+# Research Question 5 - HVM vs HSMV ischemic (with HSMV ischemic as reference)
+```
+HVM_vs_HSMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHVM - groupsHSMVischemic, levels=design)) 
+```
+
+# Research Question 6 - SMV normal vs HSMV normal (effect of diet and SMV is ref group) 
+```
+HSMVnormal_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVnormal - groupsSMVnormal, levels=design)) 
+```
+
+Also:
+
+# Effect in HSMVisch_vs_HSMVnormal and SMVisch_vs_SMVnormal ('both_HSMV_and_SMV')
+```
+shared_loci <- dplyr::inner_join(HSMVisch_vs_HSMVnormal_results_filtered, SMVisch_vs_SMVnormal_results_filtered, by="ensembl_gene_id", keep = F) %>% 
+  dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% 
+  dplyr::select_at(vars(-ends_with(".y")))
+```
+
+# Effect in HSMV but not SMV ('HSMV_effect_only')
+```
+HSMV_only <- dplyr::anti_join(HSMVisch_vs_HSMVnormal_results_filtered, SMVisch_vs_SMVnormal_results_filtered, by="ensembl_gene_id")
+```
+
+# Effect in SMV but not in HSMV ('SMV_effect_only')
+```
+SMV_only <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered, HSMVisch_vs_HSMVnormal_results_filtered, by="ensembl_gene_id")
+```
 
 
