@@ -107,9 +107,15 @@ sbatch bam2nuc.sh
 
 ## Downstream R analysis 
 
-After this point, we used the bam coverage files to perform analyses in R. The code for the R analysis can be found in the `R_rrbs_updated analysis.R` file. For our downstream analysis, genes were filtered such that only CpGs with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis. Additionally, CpGs that were never methylated or always methylated were filtered out, as these provide no information about differential methylation. The resulting sample size after filtering was 84,999.
+After this point, we used the bam coverage files to perform analyses in R. The code for the R analysis can be found in the `R_rrbs_updated analysis.R` file. For our downstream analysis, the data was filtered so that each CpG loci with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis and removed any CpGs that were never or always methylated. We also removed any non-chromosomal scaffolds from our analysis. 
 
-We then used the glmFit function to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to re-parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated loci for comparisons of interest, which were made by constructing contrast vectors. Individual CpG sites were considered differentially methylated if the nominal p-value was < 0.01. Results were filtered based on this nominal p-value threshold.
+The biomaRt package in R was used to find all transcripton start sites (TSS) in the S. scrofa genome. The `DistanceToNearest` function was used to determine each CpGs distance to its nearest TSS and loci that were more than 2 kb up or down stream from a TSS were removed from analysis. CpG that were within 2KB of a TSS were considered 'promoters' and reads were summed across each promoter. Further downstream analyses used these summed counts per promoter regions as their unit of measurement.
+
+We then used the `glmFit` function to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using `modelMatrixMeth` with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to re-parameterize it as a means model. Subsequently, the `glmLRT` function was used to find differentially methylated loci for comparisons of interest, which were made by using the `makeContrasts` function. Individual CpG sites were considered differentially methylated if the nominal p-value was < 0.01. Results were filtered based on this nominal p-value threshold.
+
+The following contrasts were ran:
+
+`SMVisch_vs_SMVnormal` uses SMV normal as the reference group and contrasts it with the SMV ischemic group.
 
 
 
