@@ -42,3 +42,9 @@ singularity exec --bind run:/run,var-lib-rstudio-server:/var/lib/rstudio-server,
 ```
 
 Then open another terminal window, load firefox module, and navigate to localhost:8787
+
+Once R is open, you'll need to tell R to use the libraries installed in the singularity container (rather than looking in your home directory on oscar).
+
+```{r}
+.libPaths(c('/usr/local/lib/R/site-library', '/usr/local/lib/R/library'))
+```
