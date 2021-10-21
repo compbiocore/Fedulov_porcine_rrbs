@@ -37,8 +37,10 @@ Opening a browser and navigating to `localhost:8787` and entering the USER and P
 The raw data and intermediate analysis files are on Oscar in the `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs` directory.    
 
 
-All of the raw sequencing files for this project can be found on Oscar in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files`. 
+All of the raw sequencing files for this project can be found on Oscar in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Sequencing_Files`.
 
+
+All coverage files used for downstream R analyses can be found on Oscar in `/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments` 
 
 ## Converting Reference Genome
 
@@ -107,7 +109,7 @@ sbatch bam2nuc.sh
 
 ## Downstream R analysis 
 
-After this point, we used the bam coverage files to perform analyses in R. The code for the R analysis can be found in the `R_rrbs_updated analysis.R` file. For our downstream analysis, the data was filtered so that each CpG loci with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis and removed any CpGs that were never or always methylated. We also removed any non-chromosomal scaffolds from our analysis. 
+After this point, we used the bam coverage files to perform analyses in R. The code for the R analysis can be found in the `R_Updated RRBS Analysis_Notebook.R` file. For our downstream analysis, the data was filtered so that each CpG loci with at least 5 counts (methylated and unmethylated) in 3 samples were included for downstream analysis and removed any CpGs that were never or always methylated. We also removed any non-chromosomal scaffolds from our analysis. 
 
 The biomaRt package in R was used to find all transcripton start sites (TSS) in the S. scrofa genome. The `DistanceToNearest` function was used to determine each CpGs distance to its nearest TSS and loci that were more than 2 kb up or down stream from a TSS were removed from analysis. CpG that were within 2KB of a TSS were considered 'promoters' and reads were summed across each promoter. Further downstream analyses used these summed counts per promoter regions as their unit of measurement.
 
