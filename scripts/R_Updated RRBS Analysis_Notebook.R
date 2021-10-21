@@ -294,9 +294,26 @@ MVM_vs_SMVischemic$table$bonferroni <- p.adjust(MVM_vs_SMVischemic$table$PValue,
 
 
 #trying to use IHW based p-value adjustment.
-
+#https://bioc.ism.ac.jp/packages/3.5/bioc/vignettes/ideal/inst/doc/ideal-usersguide.html
 #load in all the data
 load('/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/porcine_rrbs.RData')
+
+topTags(SMVisch_vs_SMVnormal)
+
+SMVisch_vs_SMVnormal_results <- SMVisch_vs_SMVnormal_results$table
+colnames(SMVisch_vs_SMVnormal_results)[colnames(SMVisch_vs_SMVnormal_results) == 'PValue'] <- 'pvalue'
+colnames(SMVisch_vs_SMVnormal_results)[colnames(SMVisch_vs_SMVnormal_results) == 'logFC'] <- 'log2FoldChange'
+colnames(SMVisch_vs_SMVnormal_results)[colnames(SMVisch_vs_SMVnormal_results) == 'logCPM'] <- 'baseMean'
+# get from the logcpm to something more the baseMean for better 
+SMVisch_vs_SMVnormal_results$baseMean <- (2^SMVisch_vs_SMVnormal_results$baseMean) * mean(SMVisch_vs_SMVnormal$samples$lib.size) / 1e6
+# use the constructor for DESeqResults 
+SMVisch_vs_SMVnormal_dds <- DESeqResults(DataFrame(SMVisch_vs_SMVnormal_results))
+SMVisch_vs_SMVnormal_dds <- DESeq2:::pvalueAdjustment(SMVisch_vs_SMVnormal_results, independentFiltering = TRUE, 
+                                        alpha = 0.05, pAdjustMethod = "BH")
+
+
+
+
 
 groups = c("SMVnormal", "SMVnormal", "SMVnormal", "SMVnormal", "SMVnormal", "SMVnormal", "SMVischemic", "SMVischemic", "SMVischemic", "SMVischemic", "SMVischemic", "SMVischemic", "MVM", "MVM", "MVM", "MVM", "MVM", "MVM", "HVM", "HVM", "HVM", "HVM", "HVM", "HVM", "HSMVnormal", "HSMVnormal", "HSMVnormal", "HSMVnormal", "HSMVnormal", "HSMVnormal", "HSMVischemic", "HSMVischemic", "HSMVischemic", "HSMVischemic", "HSMVischemic", "HSMVischemic")
 ypr$samples$groups <- groups
@@ -311,8 +328,8 @@ SMVisch_vs_SMVnormal_ihw <- results(dds, contrast = c("groups", "groupsSMVischem
 
 plotMA( SMVisch_vs_SMVnormal_ihw, ylim=c(-2,2))
 
-#SMVisch_vs_SMVnormal_ihw_bh <- ihw(SMVisch_vs_SMVnormal$table$PValue ~ SMVisch_vs_SMVnormal$table$logCPM, alpha = 0.1, adjustment_type = "BH", data = )
-#SMVisch_vs_SMVnormal_ihw_bonferroni <- ihw(SMVisch_vs_SMVnormal$table$PValue ~ SMVisch_vs_SMVnormal$table$logCPM, alpha = 0.1, adjustment_type = "bonferroni")
+SMVisch_vs_SMVnormal_ihw_bh <- ihw(SMVisch_vs_SMVnormal$table$PValue ~ SMVisch_vs_SMVnormal$table$logCPM, alpha = 0.1, adjustment_type = "BH", data = )
+SMVisch_vs_SMVnormal_ihw_bonferroni <- ihw(SMVisch_vs_SMVnormal$table$PValue ~ SMVisch_vs_SMVnormal$table$logCPM, alpha = 0.1, adjustment_type = "bonferroni")
 
 #plot(SMVisch_vs_SMVnormal_ihw_bh)
 #plot(SMVisch_vs_SMVnormal_ihw_bonferroni)

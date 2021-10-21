@@ -31,16 +31,13 @@ library("GenomicRanges")
 library("stringr")
 ```
 
-```{r}
-targets <- read.table('/home/rstudio/dat/targets.txt', header = T, sep = '\t')
+```{r Targets and Bismark2DGE}
+targets <- read.table('/gpfs/data/cbc/fedulov_alexey/porcine_rrbs/Fedulov_porcine_rrbs/dat/targets.txt', header = T, sep = '\t')
 files <- targets$file             
 yall <- readBismark2DGE(files, sample.names=targets$sample)
 
-save.image('/home/rstudio/dat/session1.Rdata')
 ```
-```{r}
-load('/home/rstudio/dat/session1.Rdata')
-
+```{r Chromosomal factor levels}
 
 yall <- yall[yall$genes[,'Chr'] == 1 | yall$genes[,'Chr'] == 2| yall$genes[,'Chr'] == 3| yall$genes[,'Chr'] == 4| yall$genes[,'Chr'] == 5| yall$genes[,'Chr'] == 6| yall$genes[,'Chr'] == 7| yall$genes[,'Chr'] == 8| yall$genes[,'Chr'] == 9| yall$genes[,'Chr'] == 10| yall$genes[,'Chr'] == 11| yall$genes[,'Chr'] == 12| yall$genes[,'Chr'] == 13| yall$genes[,'Chr'] == 14| yall$genes[,'Chr'] == 15| yall$genes[,'Chr'] == 16| yall$genes[,'Chr'] == 17| yall$genes[,'Chr'] == 18| yall$genes[,'Chr'] == 'X'| yall$genes[,'Chr'] == 'Y',]
 
@@ -59,10 +56,10 @@ table(yall$genes$Chr)
 #      Y 
 #  43712 
 
-save.image('/home/rstudio/dat/session2.Rdata')
+
 ```
-```{r}
-load('/home/rstudio/dat/session2.Rdata')
+```{r Coverage information}
+
 
 # make factor levels of Me and Un repeated along the length of the columns 
 Methylation <- gl(2,1,ncol(yall), labels=c("Me","Un"))
@@ -82,10 +79,8 @@ HasBoth <- rowSums(Me) > 0 & rowSums(Un) > 0
 # Check sample size after filtering requirements are met 
 table(HasCoverage, HasBoth)
 
-save.image('/home/rstudio/dat/session3.Rdata')
 ```
-```{r}
-load('/home/rstudio/dat/session3.Rdata')
+```{r Coverage filtering}
 
 # apply those coverage filters
 y <- yall[HasCoverage & HasBoth,, keep.lib.sizes=FALSE] 
@@ -95,16 +90,12 @@ TotalLibSize <- y$samples$lib.size[Methylation=="Me"] + y$samples$lib.size[Methy
 y$samples$lib.size <- rep(TotalLibSize, each=2)
 y$samples
 
-save.image('/home/rstudio/dat/session4.Rdata')
 table(y$genes$Chr)
 
-#   1     2     3     4     5     6     7     8     9    10    11    12    13 
-# 5275  6450  8154  4564  4175 10654  4802  3292  4270  3174  3831  6439  3177 
-#   14    15    16    17    18     X     Y 
-# 4443  2939  1952  3530  3203   524   151 
+# 1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18    X    Y 
+#3890 4871 6043 3404 3144 7954 3614 2441 3255 2367 2856 4880 2389 3280 2201 1474 2562 2326  392  122 
 ```
-```{r}
-load('/home/rstudio/dat/session4.Rdata')
+```{r Getting gene IDs from Biomart}
 
 #get all the genes used in  the DML analysis..
 y_loc <- as.data.frame(y$genes)
@@ -163,10 +154,8 @@ ss_tss_gr$hgnc_symbol <- ss_tss$hgnc_symbol
 ss_tss_gr$uniprot_gn_symbol <- ss_tss$uniprot_gn_symbol
 ss_tss_gr$entrezgene_id <- ss_tss$entrezgene_id
 
-save.image('/home/rstudio/dat/session5.Rdata')
 ```
-```{r}
-load('/home/rstudio/dat/session5.Rdata')
+```{r distanceToNearest}
 
 #distancetonearest to figure out how far away from a TSS each locus is (use this later to group into promoters)
 dtn <- as.data.frame(distanceToNearest(x = y_gr, subject = ss_tss_gr))
@@ -221,9 +210,8 @@ M01_log2 <- M01_log2 %>% rename_all( ~ str_replace(., ".Me", "_M-value"))
 M01_log2 <- M01_log2 %>% rename_all( ~ str_replace(., "RH.", "RH-"))
 
 
-save.image('/home/rstudio/dat/session6.Rdata')
 ```
-```{r}
+```{r Organizing columns and getting M values}
 #In microarray methylation studies, a common measure of methylation level is the M-value, which is defined as M = log 2 {(Me + α) /(Un + α)} where Me and Un are the methylated and unmethylated intensities and α is some suitable offset to avoid taking logarithms of zero 39. The M-value can be interpreted as the base2 logit transformation of the proportion of methylated signal at each locus. (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5747346/)
 
 #load('/home/rstudio/dat/session6.Rdata')
@@ -263,7 +251,7 @@ counts_and_genes <- counts_and_genes %>% relocate('RH-21_M-value', .after = 'RH-
 counts_and_genes <- counts_and_genes %>% relocate('RH-22_M-value', .after = 'RH-22-Un')
 counts_and_genes$hgnc_symbol <- NULL
 ```
-```{r}
+```{r modelMatrixMeth}
 # Design matrix w a one-way layout
 
 targets$group <- gsub(" ", "", targets$group, fixed = TRUE)
@@ -276,179 +264,109 @@ design
 y_glm_disp <- estimateDisp(ypr, design=design,  trend="none")
 y_glm_fit <- glmFit(y_glm_disp, design)
 ```
-```{r}
+```{r Contrasts}
 # Contrasts of interest for our study 
 
 #dummy test contrast
-contrast_test <- glmLRT(y_glm_fit, contrast = makeContrasts( (Sample1 + Sample3 + Sample5) - (Sample12 + Sample14 + Sample18), levels=design))
-
+#contrast_test <- glmLRT(y_glm_fit, contrast = makeContrasts( (Sample1 + Sample3 + Sample5) - (Sample12 + Sample14 + Sample18), levels=design))
 
 # Research Question 1 - SMV ischemic vs SMV normal (with SMV normal as reference group)
 SMVisch_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsSMVischemic - groupsSMVnormal, levels=design)) 
-#SMVisch_vs_SMVnormal
 
 # Research Question 2 - HSMV ischemic vs HSMV normal (with HSMV normal as reference group)
 HSMVisch_vs_HSMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVischemic - groupsHSMVnormal, levels=design)) 
-#HSMVisch_vs_HSMVnormal
 
 # Research Question 3 - HSMV ischemic vs HSMV normal vs SMV ischemic vs SMV normal (difference in difference with the difference between 
-# SMV ischemic and SMV normal being the reference)
 diffisch_vs_diffnormal <- glmLRT(y_glm_fit, contrast = makeContrasts( (groupsHSMVischemic - groupsHSMVnormal) - (groupsSMVischemic - groupsSMVnormal), levels=design))
-#diffisch_vs_diffnormal
 
 # Research Question 4 - MVM vs SMV ischemic (with SMV ischemic as reference)
 MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsMVM - groupsSMVischemic, levels=design)) 
-#MVM_vs_SMVischemic
 
 # Research Question 5 - HVM vs HSMV ischemic (with HSMV ischemic as reference)
 HVM_vs_HSMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHVM - groupsHSMVischemic, levels=design)) 
-#HVM_vs_HSMVischemic
 
 # Research Question 6 - SMV normal vs HSMV normal (effect of diet and SMV is ref group) 
-MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVnormal - groupsSMVnormal, levels=design)) 
+HSMVnormal_vs_SMVnormal <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVnormal - groupsSMVnormal, levels=design)) 
 ```
-
-```{r}
+```{r Corrected p-values}
 # Add corrected p-value columns
-
-#dummy test contrast
-contrast_test$table$BH <- p.adjust(contrast_test$PValue, method = "BH")
-contrast_test$table$bonferroni <- p.adjust(contrast_test$table$PValue, method = "bonferroni")
-
 
 # Research Question 1 - SMV normal vs SMV ischemic 
 SMVisch_vs_SMVnormal$table$BH <- p.adjust(SMVisch_vs_SMVnormal$table$PValue, method = "BH")
 SMVisch_vs_SMVnormal$table$bonferroni <- p.adjust(SMVisch_vs_SMVnormal$table$PValue, method = "bonferroni")
-
 # Research Question 2 - HSMV normal vs HSMV ischemic 
 HSMVisch_vs_HSMVnormal$table$BH <- p.adjust(HSMVisch_vs_HSMVnormal$table$PValue, method = "BH")
 HSMVisch_vs_HSMVnormal$table$bonferroni <- p.adjust(HSMVisch_vs_HSMVnormal$table$PValue, method = "bonferroni")
-
 # Research Question 3 - SMV normal vs SMV ischemic vs HSMV normal vs HSMV ischemic
 diffisch_vs_diffnormal$table$BH <- p.adjust(diffisch_vs_diffnormal$table$PValue, method = "BH")
 diffisch_vs_diffnormal$table$bonferroni <- p.adjust(diffisch_vs_diffnormal$table$PValue, method = "bonferroni")
-
 # Research Question 4 - MVM vs SMV ischemic 
 MVM_vs_SMVischemic$table$BH <- p.adjust(MVM_vs_SMVischemic$table$PValue, method = "BH")
 MVM_vs_SMVischemic$table$bonferroni <- p.adjust(MVM_vs_SMVischemic$table$PValue, method = "bonferroni")
-
 # Research Question 5 - HVM vs HSMV ischemic 
 HVM_vs_HSMVischemic$table$BH <- p.adjust(HVM_vs_HSMVischemic$table$PValue, method = "BH")
 HVM_vs_HSMVischemic$table$bonferroni <- p.adjust(HVM_vs_HSMVischemic$table$PValue, method = "bonferroni")
-
 # Research Question 6 - SMV normal vs HSMV normal (effect of diet and SMV is ref group) 
-MVM_vs_SMVischemic <- glmLRT(y_glm_fit, contrast = makeContrasts(groupsHSMVnormal - groupsSMVnormal, levels=design)) 
+HSMVnormal_vs_SMVnormal$table$BH <- p.adjust(HSMVnormal_vs_SMVnormal$table$PValue, method = "BH")
+HSMVnormal_vs_SMVnormal$table$bonferroni <- p.adjust(HSMVnormal_vs_SMVnormal$table$PValue, method = "bonferroni")
 
-MVM_vs_SMVischemic$table$BH <- p.adjust(MVM_vs_SMVischemic$table$PValue, method = "BH")
-MVM_vs_SMVischemic$table$bonferroni <- p.adjust(MVM_vs_SMVischemic$table$PValue, method = "bonferroni")
+
 ```
-```{r}
-#################
-# Make tables 
-#################
+```{r More entrez gene IDs and results tables}
 #get entrez IDs
 ss_mart2 <- useMart('ENSEMBL_MART_ENSEMBL', dataset = 'sscrofa_gene_ensembl')
-
 g<-select(ss_mart2, keys=counts_and_genes$ensembl_gene_id, columns=c('entrezgene_id', 'ensembl_gene_id','hgnc_symbol'),
   keytype='ensembl_gene_id', mirror = 'uswest.ensembl.org')
-
 entrez_ids <- aggregate(entrezgene_id ~., g, toString)
-
 dplyr::filter(entrez_ids, ensembl_gene_id == 'ENSSSCG00000017809')
-
 #  hgnc_symbol    ensembl_gene_id        entrezgene_id
 #1      GEMIN4 ENSSSCG00000017809 100522827, 100523693
-
 g2 <-select(ss_mart2, keys=counts_and_genes$ensembl_gene_id, columns=c('ensembl_gene_id','entrezgene_accession'),
   keytype='ensembl_gene_id', mirror = 'uswest.ensembl.org')
-
 entrez_accessions <- aggregate(entrezgene_accession ~., g2, toString) 
-
 dplyr::filter(entrez_accessions, ensembl_gene_id == 'ENSSSCG00000017809')
-
 length(unique(entrez_accessions$ensembl_gene_id))
 length(unique(entrez_ids$ensembl_gene_id))
-
 entrez_info <- inner_join(entrez_ids, entrez_accessions)
-
 dplyr::filter(entrez_info, ensembl_gene_id == 'ENSSSCG00000017809')
-
 #https://www.ncbi.nlm.nih.gov/gene/100522827
 #https://www.ncbi.nlm.nih.gov/gene/100523693
-
 #Note that only https://www.ncbi.nlm.nih.gov/gene/100522827 has the ensembl ID on the descrption page.
-
 entrez_ids <- entrez_info 
 entrez_ids$hgnc_symbol <- NULL
 entrez_ids$hgnc_symbol <- entrez_ids$entrezgene_accession
 entrez_ids$entrezgene_accession <- NULL
-
 counts_and_genes$hgnc_symbol <- NULL
 ```
-```{r}
+```{r Encode not expressed scenarios}
 #need to fix counts and genes table so that situations where counts are 0 are encoded differently/clearly
 head(counts_and_genes)
-
 counts_and_genes_long <- pivot_longer(counts_and_genes, cols = -c(ensembl_gene_id))
-
 counts_and_genes_long_sep <- counts_and_genes_long %>% separate(name, c("RH","sample", "measure"), sep = "([-])")
-
-
 counts_and_genes_long_sep$sample <- str_replace(counts_and_genes_long_sep$sample, '_M', '')
 counts_and_genes_long_sep$measure  <- str_replace(counts_and_genes_long_sep$measure , 'value', 'M_value')
-
 counts_and_genes_wide <- pivot_wider(counts_and_genes_long_sep, id_cols = c('ensembl_gene_id', 'RH', 'sample'), names_from = 'measure', values_from = 'value' )
-
-
 counts_and_genes_wide$M_value_ne <- ifelse(((counts_and_genes_wide$Me==0) & (counts_and_genes_wide$Un==0)), 'not_expressed', counts_and_genes_wide$M_value)
-
 counts_and_genes_wide$M_value <- counts_and_genes_wide$M_value_ne
-
 counts_and_genes_wide$M_value_ne <- NULL
-
 counts_and_genes_wide$original_sample <- paste0(counts_and_genes_wide$RH, '-', counts_and_genes_wide$sample)
 counts_and_genes_wide$RH <- NULL
 counts_and_genes_wide$sample <- NULL
 counts_and_genes_wide$sample <- counts_and_genes_wide$original_sample
 counts_and_genes_wide$original_sample <- NULL
-
 counts_and_genes_wider_mvalues <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'M_value')
 counts_and_genes_wider_Me <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'Me')
 counts_and_genes_wider_Un <- pivot_wider(counts_and_genes_wide, id_cols = 'ensembl_gene_id', names_from = 'sample', values_from = 'Un')
-
-
 counts_and_genes_wider_mvalues <- counts_and_genes_wider_mvalues %>% rename_at(vars(-ensembl_gene_id), paste0, "-M_values")
 counts_and_genes_wider_Me <- counts_and_genes_wider_Me %>% rename_at(vars(-ensembl_gene_id), paste0, "-Me")
 counts_and_genes_wider_Un <- counts_and_genes_wider_Un %>% rename_at(vars(-ensembl_gene_id), paste0, "-Un")
-
-
 counts_and_genes_wider <- inner_join(counts_and_genes_wider_Me, counts_and_genes_wider_Un)
-
 counts_and_genes_wider <- inner_join(counts_and_genes_wider, counts_and_genes_wider_mvalues)
-
 nrow(counts_and_genes_wider)
-
 counts_and_genes <- counts_and_genes_wider
-
-write.table(counts_and_genes, 'counts_and_genes.txt', row.names = F, sep = '\t')
+#write.table(counts_and_genes, 'counts_and_genes.txt', row.names = F, sep = '\t')
 ```
-```{r}
-
-
-#dummy test contrast
-
-
-
-contrast_test_results <- data.frame(contrast_test$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
-# add annotations 
-contrast_test_results <- left_join(contrast_test_results, entrez_ids, by = 'ensembl_gene_id')
-# add the counts and M vals
-contrast_test_results <- left_join(contrast_test_results, counts_and_genes, by = 'ensembl_gene_id')
-# filter results based on on nominal p-value
-contrast_test_results_filtered <- contrast_test_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
-
-
+```{r Results tables}
 # Question 1 
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations 
@@ -457,38 +375,30 @@ SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, entrez_i
 SMVisch_vs_SMVnormal_results <- left_join(SMVisch_vs_SMVnormal_results, counts_and_genes, by = 'ensembl_gene_id')
 # filter results based on on nominal p-value
 SMVisch_vs_SMVnormal_results_filtered <- SMVisch_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
-
 # Question 2 
 HSMVisch_vs_HSMVnormal_results <- data.frame(HSMVisch_vs_HSMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations
 HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, entrez_ids, by = 'ensembl_gene_id')
 # add the counts and M vals
 HSMVisch_vs_HSMVnormal_results <- left_join(HSMVisch_vs_HSMVnormal_results, counts_and_genes, by = 'ensembl_gene_id')
-
 # filter results based on on nominal p-value
 HSMVisch_vs_HSMVnormal_results_filtered <- HSMVisch_vs_HSMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
 # Question 3 
 diffisch_vs_diffnormal_results <- data.frame(diffisch_vs_diffnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations
 diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, entrez_ids, by = 'ensembl_gene_id')
 # add the counts and M vals
 diffisch_vs_diffnormal_results <- left_join(diffisch_vs_diffnormal_results, counts_and_genes, by = 'ensembl_gene_id')
-
 # filter results based on on nominal p-value
 diffisch_vs_diffnormal_results_filtered <- diffisch_vs_diffnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
 # Question 4 
 MVM_vs_SMVischemic_results <- data.frame(MVM_vs_SMVischemic$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations
 MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, entrez_ids, by = 'ensembl_gene_id')
 # add the counts and M vals
 MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, counts_and_genes, by = 'ensembl_gene_id')
-
 # filter results based on on nominal p-value
 MVM_vs_SMVischemic_results_filtered <- MVM_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
 # Question 5 
 HVM_vs_HSMVischemic_results <- data.frame(HVM_vs_HSMVischemic$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations
@@ -497,34 +407,28 @@ HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, entrez_ids
 HVM_vs_HSMVischemic_results <- left_join(HVM_vs_HSMVischemic_results, counts_and_genes, by = 'ensembl_gene_id')
 # filter results based on on nominal p-value
 HVM_vs_HSMVischemic_results_filtered <- HVM_vs_HSMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
-
 # Question 6 
-MVM_vs_SMVischemic_results <- data.frame(MVM_vs_SMVischemic$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
+HSMVnormal_vs_SMVnormal_results <- data.frame(HSMVnormal_vs_SMVnormal$table) %>% tibble::rownames_to_column(var = 'ensembl_gene_id')
 # add annotations
-MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, entrez_ids, by = 'ensembl_gene_id')
+HSMVnormal_vs_SMVnormal_results <- left_join(HSMVnormal_vs_SMVnormal_results, entrez_ids, by = 'ensembl_gene_id')
 # add the counts and M vals
-MVM_vs_SMVischemic_results <- left_join(MVM_vs_SMVischemic_results, counts_and_genes, by = 'ensembl_gene_id')
+HSMVnormal_vs_SMVnormal_results <- left_join(HSMVnormal_vs_SMVnormal_results, counts_and_genes, by = 'ensembl_gene_id')
 # filter results based on on nominal p-value
-MVM_vs_SMVischemic_results_filtered <- MVM_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
+HSMVnormal_vs_SMVnormal_results_filtered <- HSMVnormal_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 
-save.image('/home/rstudio/dat/session7.Rdata')
 
 ```
-
-```{r}
+```{r List overlaps}
 # This code chunk is from the `List_overlap.R` script that Jordan made.
 library(dplyr)
 
 shared_loci <- dplyr::inner_join(HSMVisch_vs_HSMVnormal_results_filtered, SMVisch_vs_SMVnormal_results_filtered, by="ensembl_gene_id", keep = F) %>% 
   dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% 
   dplyr::select_at(vars(-ends_with(".y")))
-
 head(shared_loci)
-
 
 # Effect in HSMV but not in SMV
 HSMV_only <- dplyr::anti_join(HSMVisch_vs_HSMVnormal_results_filtered, SMVisch_vs_SMVnormal_results_filtered, by="ensembl_gene_id")
-
 
 # Effect in SMV but not in HSMV 
 SMV_only <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered, HSMVisch_vs_HSMVnormal_results_filtered, by="ensembl_gene_id")
@@ -535,32 +439,16 @@ SMV_only <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered, HSMVisch_vs_
 #write.xlsx(HSMV_only, file = '/home/rstudio/dat/HSMV_effect_only.xlsx')
 #write.xlsx(SMV_only, file = '/home/rstudio/dat/SMV_effect_only.xlsx')
 ```
-
-
-```{r}
-#here's an example of how to make heatmaps from the normalized data tables:
-#load('/home/rstudio/dat/session7.Rdata')
-
-
-library(ggplot2)
-library(viridis)
-library(stringr)
+```{r Reshape data so we can inner-join the sample level information}
 labels <- targets
-```
-
-
-```{r}
-
 
 # Question 1
-
 #pivot longer and fix columns so that we can inner join the sample information:
 SMVisch_vs_SMVnormal_results_filtered_long <- SMVisch_vs_SMVnormal_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
 SMVisch_vs_SMVnormal_results_filtered_long <- tidyr::separate(SMVisch_vs_SMVnormal_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 SMVisch_vs_SMVnormal_results_filtered_long$val1 <- NULL
 SMVisch_vs_SMVnormal_results_filtered_long$sample <- paste0('RH-', SMVisch_vs_SMVnormal_results_filtered_long$sample)
 SMVisch_vs_SMVnormal_results_filtered_long <- dplyr::inner_join(SMVisch_vs_SMVnormal_results_filtered_long, labels, by = 'sample')
-
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
 SMVisch_vs_SMVnormal_results_filtered_long$ensembl_gene_id <- 
   factor(SMVisch_vs_SMVnormal_results_filtered_long$ensembl_gene_id, 
@@ -574,17 +462,13 @@ SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol <-
            (unique(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol)[
              order(SMVisch_vs_SMVnormal_results_filtered_long$logFC, method = 'radix')
              ]))
-
-
 #Question 2
-
 #pivot longer and fix columns so that we can inner join the sample information:
 HSMVisch_vs_HSMVnormal_results_filtered_long <- HSMVisch_vs_HSMVnormal_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
 HSMVisch_vs_HSMVnormal_results_filtered_long <- tidyr::separate(HSMVisch_vs_HSMVnormal_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 HSMVisch_vs_HSMVnormal_results_filtered_long$val1 <- NULL
 HSMVisch_vs_HSMVnormal_results_filtered_long$sample <- paste0('RH-', HSMVisch_vs_HSMVnormal_results_filtered_long$sample)
 HSMVisch_vs_HSMVnormal_results_filtered_long <- dplyr::inner_join(HSMVisch_vs_HSMVnormal_results_filtered_long, labels, by = 'sample')
-
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
 HSMVisch_vs_HSMVnormal_results_filtered_long$ensembl_gene_id <- 
   factor(HSMVisch_vs_HSMVnormal_results_filtered_long$ensembl_gene_id, 
@@ -598,16 +482,13 @@ HSMVisch_vs_HSMVnormal_results_filtered_long$hgnc_symbol <-
            (unique(HSMVisch_vs_HSMVnormal_results_filtered_long$hgnc_symbol)[
              order(HSMVisch_vs_HSMVnormal_results_filtered_long$logFC, method = 'radix')
              ]))
-
 #Question 3
-
 #pivot longer and fix columns so that we can inner join the sample information:
 diffisch_vs_diffnormal_results_filtered_long <- diffisch_vs_diffnormal_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
 diffisch_vs_diffnormal_results_filtered_long <- tidyr::separate(diffisch_vs_diffnormal_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 diffisch_vs_diffnormal_results_filtered_long$val1 <- NULL
 diffisch_vs_diffnormal_results_filtered_long$sample <- paste0('RH-', diffisch_vs_diffnormal_results_filtered_long$sample)
 diffisch_vs_diffnormal_results_filtered_long <- dplyr::inner_join(diffisch_vs_diffnormal_results_filtered_long, labels, by = 'sample')
-
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
 diffisch_vs_diffnormal_results_filtered_long$ensembl_gene_id <- 
   factor(diffisch_vs_diffnormal_results_filtered_long$ensembl_gene_id, 
@@ -621,16 +502,13 @@ diffisch_vs_diffnormal_results_filtered_long$hgnc_symbol <-
            (unique(diffisch_vs_diffnormal_results_filtered_long$hgnc_symbol)[
              order(diffisch_vs_diffnormal_results_filtered_long$logFC, method = 'radix')
              ]))
-
 #Question 4
-
 #pivot longer and fix columns so that we can inner join the sample information:
 MVM_vs_SMVischemic_results_filtered_long <- MVM_vs_SMVischemic_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
 MVM_vs_SMVischemic_results_filtered_long <- tidyr::separate(MVM_vs_SMVischemic_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 MVM_vs_SMVischemic_results_filtered_long$val1 <- NULL
 MVM_vs_SMVischemic_results_filtered_long$sample <- paste0('RH-', MVM_vs_SMVischemic_results_filtered_long$sample)
 MVM_vs_SMVischemic_results_filtered_long <- dplyr::inner_join(MVM_vs_SMVischemic_results_filtered_long, labels, by = 'sample')
-
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
 MVM_vs_SMVischemic_results_filtered_long$ensembl_gene_id <- 
   factor(MVM_vs_SMVischemic_results_filtered_long$ensembl_gene_id, 
@@ -644,16 +522,13 @@ MVM_vs_SMVischemic_results_filtered_long$hgnc_symbol <-
            (unique(MVM_vs_SMVischemic_results_filtered_long$hgnc_symbol)[
              order(MVM_vs_SMVischemic_results_filtered_long$logFC, method = 'radix')
              ]))
-
 #Question 5
-
 #pivot longer and fix columns so that we can inner join the sample information:
 HVM_vs_HSMVischemic_results_filtered_long <- HVM_vs_HSMVischemic_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
 HVM_vs_HSMVischemic_results_filtered_long <- tidyr::separate(HVM_vs_HSMVischemic_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
 HVM_vs_HSMVischemic_results_filtered_long$val1 <- NULL
 HVM_vs_HSMVischemic_results_filtered_long$sample <- paste0('RH-', HVM_vs_HSMVischemic_results_filtered_long$sample)
 HVM_vs_HSMVischemic_results_filtered_long <- dplyr::inner_join(HVM_vs_HSMVischemic_results_filtered_long, labels, by = 'sample')
-
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
 HVM_vs_HSMVischemic_results_filtered_long$ensembl_gene_id <- 
   factor(HVM_vs_HSMVischemic_results_filtered_long$ensembl_gene_id, 
@@ -667,37 +542,34 @@ HVM_vs_HSMVischemic_results_filtered_long$hgnc_symbol <-
            (unique(HVM_vs_HSMVischemic_results_filtered_long$hgnc_symbol)[
              order(HVM_vs_HSMVischemic_results_filtered_long$logFC, method = 'radix')
              ]))
-
-
 #Question 6
-
 #pivot longer and fix columns so that we can inner join the sample information:
-MVM_vs_SMVischemic_results_filtered_long <- MVM_vs_SMVischemic_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
-MVM_vs_SMVischemic_results_filtered_long <- tidyr::separate(MVM_vs_SMVischemic_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
-MVM_vs_SMVischemic_results_filtered_long$val1 <- NULL
-MVM_vs_SMVischemic_results_filtered_long$sample <- paste0('RH-', MVM_vs_SMVischemic_results_filtered_long$sample)
-MVM_vs_SMVischemic_results_filtered_long <- dplyr::inner_join(MVM_vs_SMVischemic_results_filtered_long, labels, by = 'sample')
-
+HSMVnormal_vs_SMVnormal_results_filtered_long <- HSMVnormal_vs_SMVnormal_results_filtered %>% tidyr::pivot_longer(cols = starts_with('RH-'), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
+HSMVnormal_vs_SMVnormal_results_filtered_long <- tidyr::separate(HSMVnormal_vs_SMVnormal_results_filtered_long, measurement, into = c('val1', 'sample', 'measurements'), sep = '-')
+HSMVnormal_vs_SMVnormal_results_filtered_long$val1 <- NULL
+HSMVnormal_vs_SMVnormal_results_filtered_long$sample <- paste0('RH-', HSMVnormal_vs_SMVnormal_results_filtered_long$sample)
+HSMVnormal_vs_SMVnormal_results_filtered_long <- dplyr::inner_join(HSMVnormal_vs_SMVnormal_results_filtered_long, labels, by = 'sample')
 #this bit sets the order of the ensembl_gene_id and hgnc_symbol to be sorted by logFC
-MVM_vs_SMVischemic_results_filtered_long$ensembl_gene_id <- 
-  factor(MVM_vs_SMVischemic_results_filtered_long$ensembl_gene_id, 
+HSMVnormal_vs_SMVnormal_results_filtered_long$ensembl_gene_id <- 
+  factor(HSMVnormal_vs_SMVnormal_results_filtered_long$ensembl_gene_id, 
          levels = 
-           (unique(MVM_vs_SMVischemic_results_filtered_long$ensembl_gene_id)[
-             order(MVM_vs_SMVischemic_results_filtered_long$logFC, method = 'radix')
+           (unique(HSMVnormal_vs_SMVnormal_results_filtered_long$ensembl_gene_id)[
+             order(HSMVnormal_vs_SMVnormal_results_filtered_long$logFC, method = 'radix')
              ]))
-MVM_vs_SMVischemic_results_filtered_long$hgnc_symbol <- 
-  factor(MVM_vs_SMVischemic_results_filtered_long$hgnc_symbol, 
+HSMVnormal_vs_SMVnormal_results_filtered_long$hgnc_symbol <- 
+  factor(HSMVnormal_vs_SMVnormal_results_filtered_long$hgnc_symbol, 
          levels = 
-           (unique(MVM_vs_SMVischemic_results_filtered_long$hgnc_symbol)[
-             order(MVM_vs_SMVischemic_results_filtered_long$logFC, method = 'radix')
+           (unique(HSMVnormal_vs_SMVnormal_results_filtered_long$hgnc_symbol)[
+             order(HSMVnormal_vs_SMVnormal_results_filtered_long$logFC, method = 'radix')
              ]))
+             
 
 #this bit in the plotting code gets rid of NA in the hgnc symbols: SMVisch_vs_SMVnormal_results_filtered_long[!is.na(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol), ]
 ```
 
 ```{r}
 #then we plot
-
+library(ggplot2)
 #QUESTION 1
 
 #Here we can note the genes in the middle tend to have M-values very close to 0.
@@ -731,8 +603,8 @@ SMVisch_vs_SMVnormal_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = SMVisch_vs_SMVnormal_mvalue_heatmap, filename = '/home/rstudio/dat/SMVisch_vs_SMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
-ggsave(plot = SMVisch_vs_SMVnormal_methcounts_heatmap, filename = '/home/rstudio/dat/SMVisch_vs_SMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = SMVisch_vs_SMVnormal_mvalue_heatmap, filename = '/home/rstudio/dat/SMVisch_vs_SMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = SMVisch_vs_SMVnormal_methcounts_heatmap, filename = '/home/rstudio/dat/SMVisch_vs_SMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
 
 # QUESTION 2
 #Here we can note the genes in the middle tend to have M-values very close to 0.
@@ -766,8 +638,8 @@ HSMVisch_vs_HSMVnormal_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = HSMVisch_vs_HSMVnormal_mvalue_heatmap, filename = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
-ggsave(plot = HSMVisch_vs_HSMVnormal_methcounts_heatmap, filename = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = HSMVisch_vs_HSMVnormal_mvalue_heatmap, filename = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = HSMVisch_vs_HSMVnormal_methcounts_heatmap, filename = '/home/rstudio/dat/HSMVisch_vs_HSMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
 
 
 # QUESTION 3
@@ -803,8 +675,8 @@ diffisch_vs_diffnormal_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = diffisch_vs_diffnormal_mvalue_heatmap, filename = '/home/rstudio/dat/diffisch_vs_diffnormal_mvalue_heatmap.png', device = 'png', height = 12, width = 9)
-ggsave(plot = diffisch_vs_diffnormal_methcounts_heatmap, filename = '/home/rstudio/dat/diffisch_vs_diffnormal_methcounts_heatmap.png', device = 'png', height = 12, width = 9)
+#ggsave(plot = diffisch_vs_diffnormal_mvalue_heatmap, filename = '/home/rstudio/dat/diffisch_vs_diffnormal_mvalue_heatmap.png', device = 'png', height = 12, width = 9)
+#ggsave(plot = diffisch_vs_diffnormal_methcounts_heatmap, filename = '/home/rstudio/dat/diffisch_vs_diffnormal_methcounts_heatmap.png', device = 'png', height = 12, width = 9)
 
 
 # QUESTION 4
@@ -840,8 +712,8 @@ MVM_vs_SMVischemic_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = MVM_vs_SMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
-ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = MVM_vs_SMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
 
 
 
@@ -878,8 +750,8 @@ HVM_vs_HSMVischemic_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = HVM_vs_HSMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/HVM_vs_HSMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
-ggsave(plot = HVM_vs_HSMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/HVM_vs_HSMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = HVM_vs_HSMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/HVM_vs_HSMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = HVM_vs_HSMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/HVM_vs_HSMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
 
 
 
@@ -918,8 +790,8 @@ MVM_vs_SMVischemic_methcounts_heatmap <- ggplot(data =
   labs(title="log(Methlated Counts)",
         x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
 
-ggsave(plot = MVM_vs_SMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
-ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = MVM_vs_SMVischemic_mvalue_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/dat/MVM_vs_SMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
 
 #save.image('/home/rstudio/dat/session8.Rdata')
 ```
@@ -927,11 +799,6 @@ ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/home/rstudio/d
 
 
 
-```{r}
-
-save.image('/home/rstudio/dat/session9.Rdata')
-load('/home/rstudio/dat/session9.Rdata')
-```
 
 ```{r}
 #First, make the readme tab:
@@ -1003,7 +870,5 @@ nrow(HVM_vs_HSMVischemic_results_filtered) #125
 nrow(shared_loci) #4
 nrow(SMV_only) #116
 nrow(HSMV_only) #119
-
-nrow(contrast_test_results_filtered) #329 so I think our results are 'real'
 ```
 
