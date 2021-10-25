@@ -1,0 +1,9 @@
+working/*
+.env
+.DS_Store
+*/.env
+*/.DS_Store
+metadata/database.conf
+metadata/*.sif
+metadata/run/
+metadata/var-lib-rstudio-server/
