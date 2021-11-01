@@ -41,7 +41,7 @@ Then log into oscar over VNC client, then open terminal and run:
 ```{bash}
 cd /gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata
 export SINGULARITY_BINDPATH="/gpfs/data/cbc"
-singularity exec --bind run:/run,var-lib-rstudio-server:/var/lib/rstudio-server,database.conf:/etc/rstudio/database.conf,/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs:/home/rstudio/Fedulov_porcine_rrbs compbiocore-rrbs.sif rserver --www-address=127.0.0.1
+singularity exec --bind run:/run,var-lib-rstudio-server:/var/lib/rstudio-server,database.conf:/etc/rstudio/database.conf rrbs_latest.sif rserver --www-address=127.0.0.1
 ```
 
 Then open another terminal window and run:
