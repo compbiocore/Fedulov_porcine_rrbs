@@ -316,3 +316,16 @@ The results files contain the following columns:
 | Rh19_R1_001 | 0.2252 | 0.9003 | 29.01 | 
 | Rh21_R1_001 | 0.2726 | 1.2379 | 29.02 | 
 | Rh22_R1_001 | 0.2368 | 1.1062 | 29.13 | 
+
+CBC Project Information
+
+```
+title: Fedulov_porcine_rrbs
+tags: rrbs, epigenetics
+analysts: Jordan Lawson, Joselynn Wallace
+git_repo_url: https://github.com:compbiocore/Fedulov_porcine_rrbs
+resources_used: bismark, edger, trim galore
+summary:  Pigs received either normal diet or high-fat diet; furthermore, in either diet group we have normal heart tissue vs. surgically induced ischemic heart tissue, and in either diet group the ischemia was treated with microvesicles injection. PBAT RRBS libraries were sequenced at Epigentek, trim galore was used for trimming, bismark for alignments, and edgeR for statistical analyses.
+project_id: CBC_014
+```
+
