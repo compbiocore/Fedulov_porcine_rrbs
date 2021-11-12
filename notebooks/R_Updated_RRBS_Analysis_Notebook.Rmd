@@ -18,6 +18,8 @@ library("stringr")
 library("ggplot2")
 library("DESeq2")
 library("IHW")
+library("dendextend")
+library("ggdendro")
 ```
 ```{r "Import data"}
 targets <- read.table('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/targets.txt', header = T, sep = '\t')
@@ -233,7 +235,7 @@ counts <- inner_join(counts, entrez, by = 'ensembl_gene_id') %>%
 
 
 ```
-```{r turn rownames into columns in contrast tables}
+```{r "turn rownames into columns in contrast tables"}
 # Research Question 1 - SMV normal vs SMV ischemic 
 SMVisch_vs_SMVnormal$table$ensembl_gene_id <- rownames(SMVisch_vs_SMVnormal$table)
 
@@ -258,18 +260,28 @@ HSMVisch_vs_SMVischemic$table$ensembl_gene_id <- rownames(HSMVisch_vs_SMVischemi
 
 
 ```
-```{r Create some M values dataframes based on how they do it in edgeR UserGuide}
-M_pr <- as.data.frame(log2(Mepr + 1) - log2(Unpr + 1))
+```{r "Create some M values dataframes based on how they do it in edgeR UserGuide"}
+M_pr <- as.data.frame(log2(Mepr + 1) - log2(Unpr + 1)) #same thing as ( log2( (Mepr + 1) / (Unpr + 1) ))
+Beta_pr <- as.data.frame(Mepr / (Unpr + Mepr+ 1))
+
+#https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-11-587
 
 mds_plot <- plotMDS(M_pr, col=rep(1:6, each=3), main="M-values", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
 
+plotMDS(Beta_pr, col=rep(1:6, each=3), main="Beta-values", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
+
+
 M_pr$ensembl_gene_id <- rownames(M_pr)
+Beta_pr$ensembl_gene_id <- rownames(Beta_pr)
 
 M_pr <- M_pr %>% rename_all( ~ str_replace(., "-Me", "-M_value"))
+Beta_pr <- Beta_pr %>% rename_all( ~ str_replace(., "-Me", "-B_value"))
 
 counts <- counts %>% inner_join(M_pr, by = 'ensembl_gene_id') %>%
   dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% 
   dplyr::select_at(vars(-ends_with(".y")))
+
+counts <- counts %>% inner_join(Beta_pr, by = 'ensembl_gene_id')
 
 counts<- counts %>% relocate(ensembl_gene_id, .before = 'RH-1-Me')
 
@@ -291,6 +303,25 @@ counts <- counts %>% relocate('RH-18-M_value', .after = 'RH-18-Un')
 counts <- counts %>% relocate('RH-19-M_value', .after = 'RH-19-Un')
 counts <- counts %>% relocate('RH-21-M_value', .after = 'RH-21-Un')
 counts <- counts %>% relocate('RH-22-M_value', .after = 'RH-22-Un')
+
+counts <- counts %>% relocate('RH-1-B_value', .after = 'RH-1-Un')
+counts <- counts %>% relocate('RH-2-B_value', .after = 'RH-2-Un')
+counts <- counts %>% relocate('RH-3-B_value', .after = 'RH-3-Un')
+counts <- counts %>% relocate('RH-4-B_value', .after = 'RH-4-Un')
+counts <- counts %>% relocate('RH-5-B_value', .after = 'RH-5-Un')
+counts <- counts %>% relocate('RH-6-B_value', .after = 'RH-6-Un')
+counts <- counts %>% relocate('RH-7-B_value', .after = 'RH-7-Un')
+counts <- counts %>% relocate('RH-8-B_value', .after = 'RH-8-Un')
+counts <- counts %>% relocate('RH-10-B_value', .after = 'RH-10-Un')
+counts <- counts %>% relocate('RH-11-B_value', .after = 'RH-11-Un')
+counts <- counts %>% relocate('RH-12-B_value', .after = 'RH-12-Un')
+counts <- counts %>% relocate('RH-14-B_value', .after = 'RH-14-Un')
+counts <- counts %>% relocate('RH-15-B_value', .after = 'RH-15-Un')
+counts <- counts %>% relocate('RH-16-B_value', .after = 'RH-16-Un')
+counts <- counts %>% relocate('RH-18-B_value', .after = 'RH-18-Un')
+counts <- counts %>% relocate('RH-19-B_value', .after = 'RH-19-Un')
+counts <- counts %>% relocate('RH-21-B_value', .after = 'RH-21-Un')
+counts <- counts %>% relocate('RH-22-B_value', .after = 'RH-22-Un')
 ```
 ```{r "nominal pvalue cutoffs"}
 # filter results based on on nominal p-value
@@ -407,7 +438,180 @@ nrow(normal_only)#528
 ischemia_only <- dplyr::anti_join(HSMVisch_vs_SMVischemic_results_filtered_05, SMVnormal_vs_HSMVnormal_results_filtered_05, by="ensembl_gene_id")
 nrow(ischemia_only)#493
 ```
+
+```{r "Use the per-promoter m value data to make a dendogram and cut it to make clusters"}
+
+#melt the data and add the per-sample details (which samples are HSMV etc)
+counts_melt <- counts %>% tidyr::pivot_longer(cols = starts_with("RH"), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
+counts_melt <- tidyr::separate(data = counts_melt, col = measurement, into = c("val1", "sample", "measurement"), sep = "-", remove = TRUE)
+counts_melt$sample <- paste0(counts_melt$val1, '-', counts_melt$sample)
+counts_melt$val1 <- NULL
+counts_melt <- dplyr::inner_join(counts_melt, targets, by = 'sample') %>% as.data.frame()
+counts_melt$file <- NULL
+counts_melt$molecule <- NULL
+
+```
+
+
+```{r}
+
+meth <- counts_melt %>% dplyr::filter(measurement == 'Me')
+meth$logval<- log(as.numeric(meth$value)+0.0001)
+ggplot(aes(logval), data=meth)+geom_density()+facet_wrap(~sample)
+
+unmeth <- counts_melt %>% dplyr::filter(measurement == 'Un')
+unmeth$logval<- log(as.numeric(unmeth$value)+0.0001)
+ggplot(aes(logval), data=unmeth)+geom_density()+facet_wrap(~sample)
+
+mval <- counts_melt %>% dplyr::filter(measurement == 'M_value')
+#mval$logval<- log(as.numeric(mval$value)+0.0001)
+ggplot(aes(as.numeric(value)), data=mval)+geom_density()+facet_wrap(~sample)
+
+bval <- counts_melt %>% dplyr::filter(measurement == 'B_value')
+#mval$logval<- log(as.numeric(mval$value)+0.0001)
+ggplot(aes(as.numeric(value)), data=bval)+geom_density()+facet_wrap(~sample)
+
+
+```
+
+
+```{r}
+#dist computes and returns a distance matrix to compute distances between rows of data matrix
+
+Beta_pr$ensembl_gene_id <- NULL
+
+m_pr_dist <- dist(M_pr)
+b_pr_dist <- dist(Beta_pr)
+methyl_pr_dist <- dist(Mepr)
+
+#hclust runs the hierarchical clustering
+m_pr_hclust <- hclust(m_pr_dist)
+b_pr_hclust <- hclust(b_pr_dist)
+methyl_pr_hclust <- hclust(methyl_pr_dist)
+
+#make a basic plot of the dendogram
+plot(m_pr_hclust, labels = F)
+plot(b_pr_hclust, labels = F)
+plot(methyl_pr_hclust, labels = F)
+```
+
+
+
+
+```{r}
+#find est numbers of clusters
+k_clust_m <- find_k(m_pr_hclust)
+k_clust_b <- find_k(b_pr_hclust)
+k_clust_methyl <- find_k(methyl_pr_hclust)
+
+#look at the plot
+plot(k_clust_m)
+plot(k_clust_b)
+plot(k_clust_methyl)
+# 2 is the optimal number in this plot but 6 also looks pretty good (at least for mvalues)
+
+library(cluster)
+sil_m <- silhouette(k_clust_m$pamobject)
+sil_b <- silhouette(k_clust_b$pamobject)
+plot(sil_m, border = NA)
+plot(sil_b, border = NA)
+```
+
+```{r}
+#try cutting the tree 
+methyl_pr_cut <- cutree(methyl_pr_hclust, k = 10) %>% tibble::enframe() %>% rename(ensembl_gene_id = name, cluster = value)
+
+#add the cluster assignments to the counts table
+methyl_pr_cut_counts <- inner_join(methyl_pr_cut, counts, on = 'ensembl_gene_id') %>% as.data.frame()
+
+
+#melt the data and add the per-sample details (which samples are HSMV etc)
+#counts_and_clusters_melted <- m_pr_cut_counts %>% tidyr::pivot_longer(cols = starts_with("RH"), names_to = "measurement", values_to = "value", values_transform = list(value = as.character))
+
+counts_and_clusters_melted <- methyl_pr_cut_counts %>% tidyr::pivot_longer(cols = starts_with("RH"), names_to = "measurement", values_to = "value")
+
+counts_and_clusters_melted <- tidyr::separate(data = counts_and_clusters_melted, col = measurement, into = c("val1", "sample", "measurement"), sep = "-", remove = TRUE)
+counts_and_clusters_melted$sample <- paste0(counts_and_clusters_melted$val1, '-', counts_and_clusters_melted$sample)
+counts_and_clusters_melted$val1 <- NULL
+counts_and_clusters_melted <- dplyr::inner_join(counts_and_clusters_melted, targets, by = 'sample') %>% as.data.frame()
+counts_and_clusters_melted$file <- NULL
+counts_and_clusters_melted$molecule <- NULL
+```
+
+```{r}
+clusters_melted_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., measurement == 'Me'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="Me counts",
+       x ="Samples", y = "Gene Symbol", fill = "Me")
+
+
+
+```
+
+
+```{r}
+# cluster 1
+cluster1_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "1") %>% dplyr::filter(., measurement == 'B_value'),mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="Beta values", x ="Samples", y = "", fill = "B Value")
+
+# cluster 2
+cluster2_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "2") %>% dplyr::filter(., measurement == 'M_value'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+
+# cluster 3
+cluster3_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "3") %>% dplyr::filter(., measurement == 'M_value'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+
+# cluster 4
+cluster4_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "4") %>% dplyr::filter(., measurement == 'M_value'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+
+# cluster 5
+cluster5_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "5") %>% dplyr::filter(., measurement == 'M_value'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+
+# cluster 6
+cluster6_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "6") %>% dplyr::filter(., measurement == 'M_value'),
+                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+```
+
+```{r}
+
+```
+
 ```{r "Reshaping for making heatmaps with the 05 cutoff data"}
+
 library(ggplot2)
 library(viridis)
 library(stringr)
@@ -553,7 +757,7 @@ SMVnormal_vs_HSMVnormal_results_filtered_long$hgnc_symbol <-
            ]))
 ```
 #this bit in the plotting code gets rid of NA in the hgnc symbols: SMVisch_vs_SMVnormal_results_filtered_long[!is.na(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol), ]
-```{r QUESTION 1 Heatmaps}
+```{r "QUESTION 1 Heatmaps"}
  
 
 #Here we can note the genes in the middle tend to have M-values very close to 0.
@@ -590,7 +794,7 @@ SMVisch_vs_SMVnormal_methcounts_heatmap <- ggplot(data =
 ggsave(plot = SMVisch_vs_SMVnormal_mvalue_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/SMVisch_vs_SMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
 ggsave(plot = SMVisch_vs_SMVnormal_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/SMVisch_vs_SMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
 ```
-```{r QUESTION 2 Heatmaps}
+```{r "QUESTION 2 Heatmaps"}
 #
 
 #Here we can note the genes in the middle tend to have M-values very close to 0.
@@ -629,7 +833,7 @@ ggsave(plot = HSMVisch_vs_HSMVnormal_methcounts_heatmap, filename = '/gpfs/data/
 
 
 ```
-```{r QUESTION 3 Heatmaps}
+```{r "QUESTION 3 Heatmaps"}
 
 #
 #Here we can note the genes in the middle tend to have M-values very close to 0.
@@ -666,7 +870,7 @@ diffisch_vs_diffnormal_methcounts_heatmap <- ggplot(data =
 ggsave(plot = diffisch_vs_diffnormal_mvalue_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/diffisch_vs_diffnormal_mvalue_heatmap.png', device = 'png', height = 12)
 ggsave(plot = diffisch_vs_diffnormal_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/diffisch_vs_diffnormal_methcounts_heatmap.png', device = 'png', height = 12)
 ```
-```{r QUESTION 4 Heatmaps}
+```{r "QUESTION 4 Heatmaps"}
 
 #Here we can note the genes in the middle tend to have M-values very close to 0.
 MVM_vs_SMVischemic_mvalue_heatmap <- ggplot(
@@ -702,7 +906,7 @@ MVM_vs_SMVischemic_methcounts_heatmap <- ggplot(data =
 ggsave(plot = MVM_vs_SMVischemic_mvalue_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/MVM_vs_SMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
 ggsave(plot = MVM_vs_SMVischemic_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/MVM_vs_SMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
 ```
-```{r QUESTION 5 Heatmaps}
+```{r "QUESTION 5 Heatmaps"}
 
 #Here we can note the genes in the middle tend to have M-values very close to 0.
 HVM_vs_HSMVischemic_mvalue_heatmap <- ggplot(
@@ -738,7 +942,7 @@ HVM_vs_HSMVischemic_methcounts_heatmap <- ggplot(data =
 ggsave(plot = HVM_vs_HSMVischemic_mvalue_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/HVM_vs_HSMVischemic_mvalue_heatmap.png', device = 'png', height = 12)
 ggsave(plot = HVM_vs_HSMVischemic_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/HVM_vs_HSMVischemic_methcounts_heatmap.png', device = 'png', height = 12)
 ```
-```{r QUESTION 6 Heatmaps}
+```{r "QUESTION 6 Heatmaps"}
 #Here we can note the genes in the middle tend to have M-values very close to 0.
 SMVnormal_vs_HSMVnormal_mvalue_heatmap <- ggplot(
   data = SMVnormal_vs_HSMVnormal_results_filtered_long[!is.na(SMVnormal_vs_HSMVnormal_results_filtered_long$hgnc_symbol), ] %>% 
@@ -774,7 +978,7 @@ ggsave(plot = SMVnormal_vs_HSMVnormal_mvalue_heatmap, filename = '/gpfs/data/cbc
 ggsave(plot = SMVnormal_vs_HSMVnormal_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/SMVnormal_vs_HSMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
 
 ```
-```{r Write some results excel files}
+```{r "Write some results excel files"}
 #First, make the readme tab:
 readme_intro <- "The 'results' tab is all unfiltered results for every loci in each contrast. The `filtered_01' and 'filtered_05' tabs are the results filtered at a nominal p-value cutoff of .01 and .05, respectively."
 readme_promoters <- "Methylation data was filtered so that each loci had to have at least 1 counts in all samples, resulting in 68998 loci. "
@@ -793,8 +997,7 @@ readme_MeUn <- "The columns with the format `RH--Me` or `RH--Un` indicate the to
 readme_MVal <- "The columns with the format `RH-_M-value` indicate the M-values for a given sample and gene. The M-values were calculated as follows: log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1) (as per edgeR user guide)"
 
 readme_sheet <- rbind(readme_intro, readme_promoters, readme_dtn, readme_glm, readme_ensembl_gene_id, readme_logFC, readme_logCPM, readme_LR, readme_PValue, readme_BH, readme_bonferroni, readme_entrezgene_id, readme_hgnc_symbol, readme_MeUn, readme_MVal)
-```
-```{r}
+
 #write outputs
 list_1 <- list(readme_sheet, SMVisch_vs_SMVnormal_results, SMVisch_vs_SMVnormal_results_filtered_01, SMVisch_vs_SMVnormal_results_filtered_05)
 names(list_1) <- c('readme', 'SMVisch_vs_SMVnormal', 'SMVisch_vs_SMVnormal_01', 'SMVisch_vs_SMVnormal_05')
@@ -832,5 +1035,45 @@ write.xlsx(list_8, file = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/re
 list_9 <- list(readme_sheet, SMV_only_01, SMV_only_05)
 names(list_9) <- c('readme', 'SMV_only_01', 'SMV_only_05')
 write.xlsx(list_9, file = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/filtered_SMV_only.xlsx', overwrite = T)
+
+```
+
+
+
+```{r}
+test <- counts_and_clusters_melted %>% dplyr::filter(measurement == 'Me')
+test$logval<- log(as.numeric(test$value)+0.0001)
+ggplot(aes(logval), data=test)+geom_density()+facet_wrap(~sample)
+
+test2 <- counts_and_clusters_melted %>% dplyr::filter(measurement == 'Un')
+test2$logval<- log(as.numeric(test2$value)+0.0001)
+ggplot(aes(logval), data=test2)+geom_density()+facet_wrap(~sample)
+
+test3 <- counts_and_clusters_melted %>% dplyr::filter(measurement == 'M_value')
+test3$logval<- log(as.numeric(test3$value)+0.0001)
+ggplot(aes(logval), data=test3)+geom_density()+facet_wrap(~sample)
+```
+
+#normalize methylated counts by lib size and run hclust
+
+
+```{r}
+my_plots <- lapply(names(iris), function(var_x){
+  p <- 
+    ggplot(iris) +
+    aes_string(var_x)
+
+  if(is.numeric(iris[[var_x]])) {
+    p <- p + geom_density()
+
+  } else {
+    p <- p + geom_bar()
+  } 
+
+})
+
+
+cowplot::plot_grid(plotlist = my_plots)
+
 
 ```
