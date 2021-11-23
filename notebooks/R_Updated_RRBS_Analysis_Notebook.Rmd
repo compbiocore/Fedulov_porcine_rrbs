@@ -49,13 +49,12 @@ nrow(yall$counts) #25,867,445
 Methylation <- gl(2,1,ncol(yall), labels=c("Me","Un"))
 Me <- yall$counts[, Methylation=="Me"]
 Un <- yall$counts[, Methylation=="Un"]
-# combine methylated and unmethylated reads to get total coverage
 Coverage <- Me + Un
+hist(rowSums(Me == 0))
 
-hist(rowSums(Coverage == 0))
-
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
-```{r "what about minimal filtering where each sample has to have 1 count? 68998 loci pass this"}
+```{r "what about minimal filtering where each sample has to have 1 methylated or unmethylated count? 68998 loci pass this"}
 HasCoverage <- rowSums(Coverage >= 1) == 18
 table(HasCoverage)["TRUE"]
 
@@ -67,17 +66,22 @@ y$samples$lib.size <- rep(TotalLibSize, each=2)
 y$samples
 
 table(y$genes$Chr)
-
+nrow(y$counts)
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
+```
+```{r "Calculate the M values and make an MDS plot"}
 Me <- y$counts[, Methylation == "Me"]
 Un <- y$counts[, Methylation == "Un"]
 
 Coverage <- Me + Un
-M <- log2(Me + 2) - log2(Un + 2)
+M <- log2(Me + .0001) - log2(Un + .0001)
 
 mds_plot <- plotMDS(M, col=rep(1:6, each=3), main="M-values", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
 #ggsave('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/mds.png', device = 'png')
 
 hist(rowSums(Coverage == 0))
+
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "get all genes in S scrofa genome"}
 #get all the genes used in  the DML analysis..
@@ -95,11 +99,13 @@ ss_tss <- getBM(attributes = c("chromosome_name",
                                "transcription_start_site",
                                "gene_biotype"), mart = ss_mart)
 
-#how many distinct ensembl gene IDs? 
+#how many distinct ensembl gene IDs in genome? 31908
 n_distinct(ss_tss$ensembl_gene_id) 
 
 # turn to granges
 ss_tss_gr <- makeGRangesFromDataFrame(ss_tss, start.field = "start_position", end.field = "end_position", keep.extra.columns = TRUE)
+
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "calculate distance to nearest TSS"}
 #distancetonearest to figure out how far away from a TSS each locus is (use this later to group into promoters)
@@ -112,9 +118,9 @@ y$genes$dist_to_nearest_tss <- dtn$distance
 y$genes$chr_loc <- paste0(y$genes$Chr, "_", y$genes$Locus)
 loci_per_gene <- as.data.frame(y$genes) %>% dplyr::group_by(nearest_ensembl_gene_id) %>% summarise(count = n_distinct(chr_loc)) %>% dplyr::arrange(desc(count)) %>% as.data.frame()
 hist(loci_per_gene$count)
-
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
-```{r "group loci based on which ensembl ID they are closest to and then sum counts"}
+```{r "group loci based on which ensembl ID they are closest to and then sum counts -- gives us 7770 genes for our analysis"}
 
 InPromoter <- y$genes$dist_to_nearest_tss <= 2000
 yIP <- y[InPromoter,,keep.lib.sizes=FALSE]
@@ -132,6 +138,7 @@ TotalLibSizepr <- 0.5*ypr$samples$lib.size[Methylation=="Me"] + 0.5*ypr$samples$
 ypr$samples$lib.size <- rep(TotalLibSizepr, each=2)
 ypr$samples
 
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "moving along straight to DML stats using the counts summed across promoters"}
 # # Design matrix w a one-way layout
@@ -141,12 +148,13 @@ targets$groups <- targets$group
 
 design <- modelMatrixMeth(model.matrix(~ 0 + groups, data=targets))
 design
-
-#do some quick dist to nearest filtering before running the fit (since 9million loci is still probably too many loci)
-
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
+```
+```{r "estimate dispersion and glmfit"}
 # Estimate dispersion and model 
 y_glm_disp <- estimateDisp(ypr, design=design,  trend="none")
 y_glm_fit <- glmFit(y_glm_disp, design)
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "run some contrasts"}
 # Research Question 1 - SMV ischemic vs SMV normal (with SMV normal as reference group)
@@ -177,6 +185,7 @@ summary(decideTests(MVM_vs_SMVischemic))
 summary(decideTests(HVM_vs_HSMVischemic))
 summary(decideTests(SMVnormal_vs_HSMVnormal))
 summary(decideTests(HSMVisch_vs_SMVischemic))
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "add corrected pvalues"}
 # Add corrected p-value columns
@@ -232,7 +241,7 @@ counts <- inner_join(counts, entrez, by = 'ensembl_gene_id') %>%
   dplyr::select_at(vars(-ends_with(".y")))
 
 
-
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 
 ```
 ```{r "turn rownames into columns in contrast tables"}
@@ -257,18 +266,21 @@ SMVnormal_vs_HSMVnormal$table$ensembl_gene_id <- rownames(MVM_vs_SMVischemic$tab
 # Research Question 7
 HSMVisch_vs_SMVischemic$table$ensembl_gene_id <- rownames(HSMVisch_vs_SMVischemic$table)
 
-
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 
 ```
 ```{r "Create some M values dataframes based on how they do it in edgeR UserGuide"}
-M_pr <- as.data.frame(log2(Mepr + 1) - log2(Unpr + 1)) #same thing as ( log2( (Mepr + 1) / (Unpr + 1) ))
-Beta_pr <- as.data.frame(Mepr / (Unpr + Mepr+ 1))
+M_pr <- as.data.frame(log2(Mepr + .0001) - log2(Unpr + .0001)) #same thing as log2((Mepr+.0001)/(Unpr+.0001))
+
+Beta_pr <- as.data.frame(Mepr / (Unpr + Mepr+ .0001))
 
 #https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-11-587
 
 mds_plot <- plotMDS(M_pr, col=rep(1:6, each=3), main="M-values", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
 
 plotMDS(Beta_pr, col=rep(1:6, each=3), main="Beta-values", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
+
+plotMDS((log(Mepr)), col=rep(1:6, each=3), main="log methylated counts", labels = c("RH-1_SMVnormal","RH-2_SMVnormal","RH-3_SMVnormal","RH-4_SMVischemic","RH-5_SMVischemic","RH-6_SMVischemic","RH-7_MVM","RH-8_MVM","RH-10_MVM","RH-11_HVM","RH-12_HVM","RH-14_HVM","RH-15_HSMVnormal","RH-16_HSMVnormal","RH-18_HSMVnormal","RH-19_HSMVischemic","RH-21_HSMVischemic","RH-22_HSMVischemic"))
 
 
 M_pr$ensembl_gene_id <- rownames(M_pr)
@@ -322,6 +334,8 @@ counts <- counts %>% relocate('RH-18-B_value', .after = 'RH-18-Un')
 counts <- counts %>% relocate('RH-19-B_value', .after = 'RH-19-Un')
 counts <- counts %>% relocate('RH-21-B_value', .after = 'RH-21-Un')
 counts <- counts %>% relocate('RH-22-B_value', .after = 'RH-22-Un')
+
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "nominal pvalue cutoffs"}
 # filter results based on on nominal p-value
@@ -329,116 +343,117 @@ counts <- counts %>% relocate('RH-22-B_value', .after = 'RH-22-Un')
 SMVisch_vs_SMVnormal_results <- data.frame(SMVisch_vs_SMVnormal$table) %>% inner_join(counts, by = 'ensembl_gene_id') 
 SMVisch_vs_SMVnormal_results_filtered_05 <- SMVisch_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(SMVisch_vs_SMVnormal_results_filtered_05) 
-# 473
+# 369
 
 SMVisch_vs_SMVnormal_results_filtered_01 <- SMVisch_vs_SMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(SMVisch_vs_SMVnormal_results_filtered_01)
-# 97
+# 67
 
 # Question 2 
 HSMVisch_vs_HSMVnormal_results <- data.frame(HSMVisch_vs_HSMVnormal$table) %>% inner_join(counts, by = 'ensembl_gene_id')
 HSMVisch_vs_HSMVnormal_results_filtered_05 <- HSMVisch_vs_HSMVnormal_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(HSMVisch_vs_HSMVnormal_results_filtered_05)
-# 458
+# 372
 
 HSMVisch_vs_HSMVnormal_results_filtered_01 <- HSMVisch_vs_HSMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(HSMVisch_vs_HSMVnormal_results_filtered_01)
-# 111
+# 88
 
 # Question 3 
 diffisch_vs_diffnormal_results <- data.frame(diffisch_vs_diffnormal$table) %>% inner_join(counts, by = 'ensembl_gene_id')
 diffisch_vs_diffnormal_results_filtered_05 <- diffisch_vs_diffnormal_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(diffisch_vs_diffnormal_results_filtered_05)
-# 517
+# 417
 
 diffisch_vs_diffnormal_results_filtered_01 <- diffisch_vs_diffnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(diffisch_vs_diffnormal_results_filtered_01)
-# 102
+# 99
 
 # Question 4 
 MVM_vs_SMVischemic_results <- data.frame(MVM_vs_SMVischemic$table)  %>% inner_join(counts, by = 'ensembl_gene_id')
 MVM_vs_SMVischemic_results_filtered_05 <- MVM_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(MVM_vs_SMVischemic_results_filtered_05)
-# 574
+# 397
 
 MVM_vs_SMVischemic_results_filtered_01 <- MVM_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(MVM_vs_SMVischemic_results_filtered_01)
-# 147
+# 74
 
 # Question 5 
 HVM_vs_HSMVischemic_results <- data.frame(HVM_vs_HSMVischemic$table) %>% inner_join(counts, by = 'ensembl_gene_id')
 HVM_vs_HSMVischemic_results_filtered_05 <- HVM_vs_HSMVischemic_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(HVM_vs_HSMVischemic_results_filtered_05)
-# 511
+# 398
 
 HVM_vs_HSMVischemic_results_filtered_01 <- HVM_vs_HSMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(HVM_vs_HSMVischemic_results_filtered_01)
-# 123
+# 79
 
 # Question 6
 SMVnormal_vs_HSMVnormal_results <- data.frame(SMVnormal_vs_HSMVnormal$table) %>% inner_join(counts, by = 'ensembl_gene_id')
 SMVnormal_vs_HSMVnormal_results_filtered_05 <- SMVnormal_vs_HSMVnormal_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(SMVnormal_vs_HSMVnormal_results_filtered_05)
-# 597
+# 422
 
 SMVnormal_vs_HSMVnormal_results_filtered_01 <- SMVnormal_vs_HSMVnormal_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(SMVnormal_vs_HSMVnormal_results_filtered_01)
-# 159
+# 75
 
 # Question 7
 HSMVisch_vs_SMVischemic_results <- data.frame(HSMVisch_vs_SMVischemic$table) %>% inner_join(counts, by = 'ensembl_gene_id')
 HSMVisch_vs_SMVischemic_results_filtered_05 <- HSMVisch_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.05) %>% arrange(logFC)
 nrow(HSMVisch_vs_SMVischemic_results_filtered_05)
-# 562
+# 400
 
 HSMVisch_vs_SMVischemic_results_filtered_01 <- HSMVisch_vs_SMVischemic_results  %>% dplyr::filter(PValue < 0.01) %>% arrange(logFC)
 nrow(HSMVisch_vs_SMVischemic_results_filtered_01)
-# 148
+# 78
+
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 ```
 ```{r "overlaps for ischemia affect in hf diet vs normal diet"}
 #ischemia affect in high fat and normal diet
 shared_loci_05 <- dplyr::inner_join(HSMVisch_vs_HSMVnormal_results_filtered_05, SMVisch_vs_SMVnormal_results_filtered_05, by="ensembl_gene_id", keep = F) %>% dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% dplyr::select_at(vars(-ends_with(".y")))
 
 head(shared_loci_05)
-nrow(shared_loci_05) #32
+nrow(shared_loci_05) #18
 
 # Effect in HSMV but not in SMV - ischemia effect in high fat but not normal
 HSMV_only_05 <- dplyr::anti_join(HSMVisch_vs_HSMVnormal_results_filtered_05, SMVisch_vs_SMVnormal_results_filtered_05, by="ensembl_gene_id")
-nrow(HSMV_only_05) #426
+nrow(HSMV_only_05) #354
 
 # Effect in SMV but not in HSMV - ischemia affect in normal diet but not high fat
 SMV_only_05 <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered_05, HSMVisch_vs_HSMVnormal_results_filtered_05, by="ensembl_gene_id")
-nrow(SMV_only_05)#441
+nrow(SMV_only_05)#351
 
 
 shared_loci_01 <- dplyr::inner_join(HSMVisch_vs_HSMVnormal_results_filtered_01, SMVisch_vs_SMVnormal_results_filtered_01, by="ensembl_gene_id", keep = F) %>% dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% dplyr::select_at(vars(-ends_with(".y")))
 
 head(shared_loci_01)
-nrow(shared_loci_01) #4
+nrow(shared_loci_01) #1
 
 # Effect in HSMV but not in SMV - ischemia effect in high fat but not normal
 HSMV_only_01 <- dplyr::anti_join(HSMVisch_vs_HSMVnormal_results_filtered_01, SMVisch_vs_SMVnormal_results_filtered_01, by="ensembl_gene_id")
-nrow(HSMV_only_01) #107
+nrow(HSMV_only_01) #87
 
 # Effect in SMV but not in HSMV - ischemia affect in normal diet but not high fat
 SMV_only_01 <- dplyr::anti_join(SMVisch_vs_SMVnormal_results_filtered_01, HSMVisch_vs_HSMVnormal_results_filtered_01, by="ensembl_gene_id")
-nrow(SMV_only_01)#93
+nrow(SMV_only_01)#66
 ```
 ```{r "overlaps for hf diet affect in ischemia vs normal tissue"}
 #diet effect in ischemia and normal -- again, not something Alexey is interested in but adding it as a comparison for the previous overlap check
 shared_loci_05_2 <- dplyr::inner_join(SMVnormal_vs_HSMVnormal_results_filtered_05, HSMVisch_vs_SMVischemic_results_filtered_05, by="ensembl_gene_id", keep = F) %>% dplyr::rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% dplyr::select_at(vars(-ends_with(".y")))
 #diet effect in ischemia vs normal
-nrow(shared_loci_05_2) #69
+nrow(shared_loci_05_2) #36
 
 # diet effect in normal tissue but not ischemia
 normal_only <- dplyr::anti_join(SMVnormal_vs_HSMVnormal_results_filtered_05, HSMVisch_vs_SMVischemic_results_filtered_05, by="ensembl_gene_id")
-nrow(normal_only)#528
+nrow(normal_only)#386
 
 # Diet effect in ischemia but not normal tissue
 ischemia_only <- dplyr::anti_join(HSMVisch_vs_SMVischemic_results_filtered_05, SMVnormal_vs_HSMVnormal_results_filtered_05, by="ensembl_gene_id")
-nrow(ischemia_only)#493
+nrow(ischemia_only)#364
 ```
-
 ```{r "Use the per-promoter m value data to make a dendogram and cut it to make clusters"}
 
 #melt the data and add the per-sample details (which samples are HSMV etc)
@@ -449,77 +464,63 @@ counts_melt$val1 <- NULL
 counts_melt <- dplyr::inner_join(counts_melt, targets, by = 'sample') %>% as.data.frame()
 counts_melt$file <- NULL
 counts_melt$molecule <- NULL
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
 
 ```
-
-
 ```{r}
 
 meth <- counts_melt %>% dplyr::filter(measurement == 'Me')
 meth$logval<- log(as.numeric(meth$value)+0.0001)
-ggplot(aes(logval), data=meth)+geom_density()+facet_wrap(~sample)
+ggplot(aes(logval), data=meth)+geom_density()+facet_wrap(~sample)+ggtitle('Methylated Counts')
 
 unmeth <- counts_melt %>% dplyr::filter(measurement == 'Un')
 unmeth$logval<- log(as.numeric(unmeth$value)+0.0001)
-ggplot(aes(logval), data=unmeth)+geom_density()+facet_wrap(~sample)
+ggplot(aes(logval), data=unmeth)+geom_density()+facet_wrap(~sample)+ggtitle('Unmethylated Counts')
 
 mval <- counts_melt %>% dplyr::filter(measurement == 'M_value')
 #mval$logval<- log(as.numeric(mval$value)+0.0001)
-ggplot(aes(as.numeric(value)), data=mval)+geom_density()+facet_wrap(~sample)
+ggplot(aes(as.numeric(value)), data=mval)+geom_density()+facet_wrap(~sample)+ggtitle('mvalues')
 
 bval <- counts_melt %>% dplyr::filter(measurement == 'B_value')
 #mval$logval<- log(as.numeric(mval$value)+0.0001)
-ggplot(aes(as.numeric(value)), data=bval)+geom_density()+facet_wrap(~sample)
+ggplot(aes(as.numeric(value)), data=bval)+geom_density()+facet_wrap(~sample)+ggtitle('bvalues')
 
 
 ```
-
-
 ```{r}
-#dist computes and returns a distance matrix to compute distances between rows of data matrix
-
-Beta_pr$ensembl_gene_id <- NULL
-
-m_pr_dist <- dist(M_pr)
-b_pr_dist <- dist(Beta_pr)
-methyl_pr_dist <- dist(Mepr)
+#make 
+#get log methylated counts (not bothering w offset since we dropped 0 methylated counts from data)
+Mepr_log <- log(Mepr) 
+#scale data
+Mepr_log_scale <- scale(Mepr_log)
+#calculate the distance
+Mepr_pr_dist <- dist(Mepr_log_scale)
 
 #hclust runs the hierarchical clustering
-m_pr_hclust <- hclust(m_pr_dist)
-b_pr_hclust <- hclust(b_pr_dist)
-methyl_pr_hclust <- hclust(methyl_pr_dist)
+Mepr_pr_hclust <- hclust(Mepr_pr_dist)
 
-#make a basic plot of the dendogram
-plot(m_pr_hclust, labels = F)
-plot(b_pr_hclust, labels = F)
-plot(methyl_pr_hclust, labels = F)
+plot(Mepr_pr_hclust)
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
+
 ```
-
-
-
 
 ```{r}
 #find est numbers of clusters
-k_clust_m <- find_k(m_pr_hclust)
-k_clust_b <- find_k(b_pr_hclust)
-k_clust_methyl <- find_k(methyl_pr_hclust)
+k_clust_methyl <- find_k(Mepr_pr_hclust)
 
 #look at the plot
-plot(k_clust_m)
-plot(k_clust_b)
 plot(k_clust_methyl)
-# 2 is the optimal number in this plot but 6 also looks pretty good (at least for mvalues)
+# 2 is the optimal number in this plot but 8 also looks ok
 
 library(cluster)
-sil_m <- silhouette(k_clust_m$pamobject)
-sil_b <- silhouette(k_clust_b$pamobject)
-plot(sil_m, border = NA)
-plot(sil_b, border = NA)
+sil_methyl <- silhouette(k_clust_methyl$pamobject)
+plot(sil_methyl, border = NA)
+
 ```
 
 ```{r}
 #try cutting the tree 
-methyl_pr_cut <- cutree(methyl_pr_hclust, k = 10) %>% tibble::enframe() %>% rename(ensembl_gene_id = name, cluster = value)
+methyl_pr_cut <- cutree(Mepr_pr_hclust, k = 8) %>% tibble::enframe() %>% rename(ensembl_gene_id = name, cluster = value)
 
 #add the cluster assignments to the counts table
 methyl_pr_cut_counts <- inner_join(methyl_pr_cut, counts, on = 'ensembl_gene_id') %>% as.data.frame()
@@ -536,75 +537,15 @@ counts_and_clusters_melted$val1 <- NULL
 counts_and_clusters_melted <- dplyr::inner_join(counts_and_clusters_melted, targets, by = 'sample') %>% as.data.frame()
 counts_and_clusters_melted$file <- NULL
 counts_and_clusters_melted$molecule <- NULL
+
+save.image('/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/metadata/jw/fedulov.RData')
+
 ```
 
 ```{r}
-clusters_melted_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., measurement == 'Me'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="Me counts",
-       x ="Samples", y = "Gene Symbol", fill = "Me")
-
-
 
 ```
 
-
-```{r}
-# cluster 1
-cluster1_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "1") %>% dplyr::filter(., measurement == 'B_value'),mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="Beta values", x ="Samples", y = "", fill = "B Value")
-
-# cluster 2
-cluster2_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "2") %>% dplyr::filter(., measurement == 'M_value'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
-       x ="Samples", y = "Gene Symbol", fill = "M Value")
-
-# cluster 3
-cluster3_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "3") %>% dplyr::filter(., measurement == 'M_value'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
-       x ="Samples", y = "Gene Symbol", fill = "M Value")
-
-# cluster 4
-cluster4_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "4") %>% dplyr::filter(., measurement == 'M_value'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
-       x ="Samples", y = "Gene Symbol", fill = "M Value")
-
-# cluster 5
-cluster5_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "5") %>% dplyr::filter(., measurement == 'M_value'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
-       x ="Samples", y = "Gene Symbol", fill = "M Value")
-
-# cluster 6
-cluster6_melted_mvalue_heatmap <- ggplot(data = counts_and_clusters_melted %>% dplyr::filter(., cluster == "6") %>% dplyr::filter(., measurement == 'M_value'),
-                                                    mapping = aes(x = sample, y = ensembl_gene_id, fill = as.numeric(value))) +
-  geom_tile() + 
-  scale_fill_distiller(palette = "RdYlBu") +
-  facet_grid(~group, scales = 'free') +
-  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
-       x ="Samples", y = "Gene Symbol", fill = "M Value")
-```
 
 ```{r}
 
@@ -640,6 +581,43 @@ SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol <-
            ]))
 
 
+#Here we can note the genes in the middle tend to have M-values very close to 0.
+SMVisch_vs_SMVnormal_mvalue_heatmap <- ggplot(
+  data = SMVisch_vs_SMVnormal_results_filtered_long[!is.na(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol), ] %>% 
+                                                dplyr::filter(., group == "SMVischemic" | group == "SMVnormal") %>% 
+                                                dplyr::filter(., measurements == 'M_value'),
+  mapping = aes(
+                                                x = sample, 
+                                                y = hgnc_symbol, 
+                                                fill = as.numeric(value))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log2(Methylated Counts + 1) - log2(Unmethylated Counts + 1)",
+       x ="Samples", y = "Gene Symbol", fill = "M Value")
+
+
+#Here we can note the genes in the middle tend to have high methylated counts, showing the trend where genes that have high counts are still counted as statistically significant although the fold change is subtle and small.
+SMVisch_vs_SMVnormal_methcounts_heatmap <- ggplot(data = 
+                                                    SMVisch_vs_SMVnormal_results_filtered_long[!is.na(SMVisch_vs_SMVnormal_results_filtered_long$hgnc_symbol), ] %>% 
+                                                    dplyr::filter(., group == "SMVischemic" | group == "SMVnormal") %>% 
+                                                    dplyr::filter(., measurements == 'Me'),
+                                                  mapping = aes(
+                                                    x = sample, 
+                                                    y = hgnc_symbol, 
+                                                    fill = log(as.numeric(value)))) +
+  geom_tile() + 
+  scale_fill_distiller(palette = "RdYlBu") +
+  facet_grid(~group, scales = 'free') +
+  labs(title="log(Methlated Counts)",
+       x ="Samples", y = "Gene Symbol", fill = "log(Methylated Counts)")
+
+#ggsave(plot = SMVisch_vs_SMVnormal_mvalue_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/SMVisch_vs_SMVnormal_mvalue_heatmap.png', device = 'png', height = 12)
+#ggsave(plot = SMVisch_vs_SMVnormal_methcounts_heatmap, filename = '/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/results/SMVisch_vs_SMVnormal_methcounts_heatmap.png', device = 'png', height = 12)
+```
+
+
+```{r}
 #Question 2
 
 #pivot longer and fix columns so that we can inner join the sample information:
