@@ -1,0 +1,290 @@
+
+# Experimental Design
+
+Study design: Pigs received either normal diet or high-fat diet; furthermore, in either diet group we have normal heart tissue vs. surgically induced ischemic heart tissue, 
+and in either diet group the ischemia was treated with microvesicles injection.
+
+The following 6 groups (n=3 each) of porcine myocardium DNA are therefore presented: 
+1. “SMV normal” = sham surgery with normal diet (normal heart tissue, negative control);
+2. “SMV ischemic” = sham surgery with normal diet (ischemic heart tissue); 
+3. “MVM” = myocardial injection of microvesicles in a normal diet model; 
+4. “HVM” = myocardial injection of microvesicles in a high-fat diet model; 
+5. “HSMV normal” = myocardial injection of vehicle control in a high-fat diet - normal heart tissue; 
+6. “HSMV ischemic” = myocardial injection of vehicle control in a high-fat diet – ischemic heart tissue.
+
+Goal: we want to determine the loci differentially methylated in all pairwise comparisons between the groups to answer these experimental questions:
+
+1). What was the effect of ischemia vs. normal heart tissue on a normal diet in absence of treatments? (SMV normal vs. SMV ischemic).
+
+2). What was the effect of ischemia vs. normal heart tissue on a high-fat diet in absence of treatments (HSMV normal vs. HSMV ischemic) and whether it was different from that effect in the normal diet? (this resultant list vs. list from #1) 
+
+3). What was the effect of microvesicle treatment (vs. ischemia) in normal diet and in high-fat diet? (MVM vs. SMV ischemic; and HVM vs. HSMV ischemic)
+
+Notes: The differentially methylated loci detection should be done at reasonable stringency to a) characterize the extent of changes by each experimental factor, and b) to inform downstream pathway analysis.
+
+The differentially methylated loci need to be mapped to the nearest transcript (with distance to TSS) and presented in the form of data tables convenient for heatmaps (i.e. with methylation percent values) and for downstream pathway analysis (i.e. with gene names and IDs).
+
+# Analysis Overview
+Initial QC of raw reads was run using FASTQC (0.11.9) <sup>1</sup>. Reads were trimmed using Trim Galore (0.6.5) <sup>2</sup> with the `--rrbs` option to remove any filled-in cytosine positions remaining from the library preparation, `--adapter AGATCGGAAGAGC` to remove adapters, `--clip_R1 6` to remove primers left from the PBAT library preparation, and `--quality 20` to remove low-quality ends from the reads. An additional trimming step was performed in Trimmomatic (0.36) to remove any additional adapters (`ILLUMINACLIP:TruSeq3-SE.fa:2:30:5:6:true`), low-quality bases (`SLIDINGWINDOW:4:20`), or truncated reads (`MINLEN:35`). Bismark (0.22.3) <sup>4</sup> was used to prepare the reference genome (`bismark_genome_preparation`) from the Sus scrofa Sscrofa11.1 genome<sup>4, 5</sup>. Bismark (0.22.3) <sup>4</sup> was also used for aligning reads to the reference (`bismark`) and extracting the methylation information (`bismark_methylation_extractor`). Alignments were ran with the `pbat` flag to properly align reads to the complementary-to-original strands of the genome and methylation extraction was ran with the `--comprehensive` and `-merge_non_CpG` flags to extract methylation in CpG context, `--bedGraph` to get an output in bedgraph format, and `--ignore_3prime 6` to ignore biased methylation calls on the 3' ends of the reads. Loci were filtered to include only loci that had at least one count (methylated or unmethylated) in every sample. Methylated and unmethylated counts were summed across Ensembl gene promoter regions (within 2kb of a transcription start site) using biomaRt(2.46.3)<sup>7, 8 </sup> and GRanges(1.42.0)<sup>9</sup> (`distanceToNearest`). The edgeR<sup>10</sup> package was used to find differentially methylated promoters. Briefly, the glmFit function was used to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated promoters for comparisons of interest, which were made by constructing contrast vectors. Promoters were considered differentially methylated if the nominal p-value was < 0.01. 
+
+1.) Andrews (2010). FastQC: a quality control tool for high throughput sequence data. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc
+
+2.) Krueger F. (2012). A wrapper tool around Cutadapt and FastQC to consistently apply quality and adapter trimming to FastQ files, with some extra functionality for MspI-digested RRBS-type (Reduced Representation Bisufite-Seq) libraries. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/trim_galore/
+
+3.) Bolger et al. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. DOI: 10.1093/bioinformatics/btu170 
+
+4.) Krueger (2010). Bismark: A tool to map bisulfite converted sequence reads and determine cytosine methylation states. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/bismark/
+
+5.) Li et al. (2016). Comprehensive variation discovery and recovery of missing sequence in the pig genome using multiple de novo assemblies. DOI: 10.1101/gr.207456.116 
+
+6.) Warr et al. (2020). An improved pig reference genome sequence to enable pig genetics and genomics research. DOI: 10.1093/gigascience/giaa051
+
+7.) Durinck et al. (2009). Mapping identifiers for the integration of genomic datasets with the R/Bioconductor package biomaRt. DOI: 10.1038/nprot.2009.97 
+
+8.) Durinck et al. (2005). BioMart and Bioconductor: a powerful link between biological databases and microarray data analysis. DOI: 10.1093/bioinformatics/bti525 
+
+9.) Lawrence et al. (2013). Software for Computing and Annotating Genomic Ranges. DOI: 10.1371/journal.pcbi.1003118
+
+10.) Chen et al. (2018).  Differential methylation analysis of reduced representation bisulfite sequencing experiments using edgeR. DOI: 10.12688/f1000research.13196.2 
+
+# Read QC - untrimmed
+
+ **Library** | **Per-base quality** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh2_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh3_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh4_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh5_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh6_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh7_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh8_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh10_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh11_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh12_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh14_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh15_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh16_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh18_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh19_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh21_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_fastqc/Images/per_base_quality.png) | 
+| Rh22_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_fastqc/Images/per_base_quality.png) | 
+
+ **Library** | **Adapter content** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh2_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh3_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh4_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh5_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh6_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh7_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh8_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh10_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh11_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh12_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh14_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh15_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh16_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh18_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh19_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh21_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_fastqc/Images/adapter_content.png) | 
+| Rh22_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_fastqc/Images/adapter_content.png) | 
+
+ **Library** | **Per base sequence content** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh2_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh3_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh4_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh5_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh6_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh7_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh8_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh10_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh11_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh12_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh14_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh15_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh16_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh18_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh19_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh21_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+| Rh22_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_fastqc/Images/per_base_sequence_content.png) | 
+
+ **Library** | **Per sequence gc content** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh2_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh3_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh4_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh5_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh6_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh7_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh8_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh10_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh11_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh12_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh14_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh15_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh16_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh18_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh19_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh21_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh22_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_fastqc/Images/per_sequence_gc_content.png) | 
+
+# Read QC - trimmed
+
+ **Library** | **Per-base quality** | 
+|:------:|:-----------:|
+| Rh1_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh2_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh3_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh4_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh5_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh6_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh7_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh8_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh10_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh11_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh12_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh14_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh15_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh16_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh18_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh19_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh21_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+| Rh22_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_trimmomatic_fastqc/Images/per_base_quality.png) | 
+
+ **Library** | **Adapter content** | 
+|:------:|:-----------:|
+| Rh1_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh2_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh3_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh4_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh5_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh6_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh7_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh8_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh10_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh11_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh12_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh14_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh15_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh16_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh18_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh19_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh21_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+| Rh22_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_trimmomatic_fastqc/Images/adapter_content.png) | 
+
+ **Library** | **Per base sequence content** | 
+|:------:|:-----------:|
+| Rh1_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh2_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh3_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh4_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh5_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh6_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh7_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh8_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh10_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh11_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh12_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh14_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh15_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh16_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh18_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh19_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh21_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+| Rh22_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_trimmomatic_fastqc/Images/per_base_sequence_content.png) | 
+
+ **Library** | **Per sequence gc content** | 
+|:------:|:-----------:|
+| Rh1_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-1_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh2_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-2_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh3_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-3_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh4_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-4_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh5_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-5_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh6_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-6_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh7_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-7_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh8_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-8_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh10_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-10_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh11_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-11_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh12_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-12_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh14_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-14_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh15_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-15_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh16_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-16_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh18_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-18_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh19_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-19_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh21_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-21_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) | 
+| Rh22_R1_001_trimmed | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/fastqc/Rh-22_R1_001_trimmomatic_fastqc/Images/per_sequence_gc_content.png) |
+
+#  Alignment summary statistics
+
+| **LIBRARY** | **NUMBER_READS** | **MAPPED_READS** | **UNMAPPED_READS** | **DUPLICATED_READS** | **DUPLICATION_RATE** |  
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Rh1_R1_001 | 10,845,489 | 10,845,489 / 100% | 0 / 0% | 1,437,581 / 13.26% | 12.6% | 
+| Rh2_R1_001 | 12,892,543 | 12,892,543 / 100% | 0 / 0% | 1,496,670 / 11.61% | 10.93% | 
+| Rh3_R1_001 | 8,715,481 | 8,715,481 / 100% | 0 / 0% | 1,029,908 / 11.82% | 11.02% | 
+| Rh4_R1_001 | 9,968,480 | 9,968,480 / 100% | 0 / 0% | 1,209,925 / 12.14% | 11.51% | 
+| Rh5_R1_001 | 13,925,551 | 13,925,551 / 100% | 0 / 0% | 2,056,379 / 14.77% | 13.91% | 
+| Rh6_R1_001 | 13,362,404 | 13,362,404 / 100% | 0 / 0% | 1,750,619 / 13.1% | 12.31% | 
+| Rh7_R1_001 | 12,851,559 | 12,851,559 / 100% | 0 / 0% | 1,713,430 / 13.33% | 12.48% | 
+| Rh8_R1_001 | 12,872,887 | 12,872,887 / 100% | 0 / 0% | 1,769,849 / 13.75% | 12.93% | 
+| Rh10_R1_001 | 15,060,158 | 15,060,158 / 100% | 0 / 0% | 2,107,684 / 14% | 13.11% | 
+| Rh11_R1_001 | 13,432,863 | 13,432,863 / 100% | 0 / 0% | 1,930,952 / 14.37% | 13.51% | 
+| Rh12_R1_001 | 14,880,989 | 14,880,989 / 100% | 0 / 0% | 2,381,186 / 16% | 14.75% | 
+| Rh14_R1_001 | 13,023,116 | 13,023,116 / 100% | 0 / 0% | 1,938,398 / 14.88% | 13.62% | 
+| Rh15_R1_001 | 13,292,288 | 13,292,288 / 100% | 0 / 0% | 1,992,503 / 14.99% | 13.72% | 
+| Rh16_R1_001 | 17,058,927 | 17,058,927 / 100% | 0 / 0% | 2,756,384 / 16.16% | 15.03% | 
+| Rh18_R1_001 | 12,196,440 | 12,196,440 / 100% | 0 / 0% | 1,814,764 / 14.88% | 13.42% | 
+| Rh19_R1_001 | 13,248,129 | 3,248,129 / 100% | 0 / 0% | 1,901,092 / 14.35% | 13.16% | 
+| Rh21_R1_001 | 16,030,293 | 16,030,293 / 100% | 0 / 0% | 2,624,856 / 16.37% | 14.84% | 
+| Rh22_R1_001 | 13,927,765 | 13,927,765 / 100% | 0 / 0% | 1,961,472 / 14.08% | 13.05% | 
+
+| **LIBRARY** | **COVERAGE_MEAN** | **COVERAGE_SD** | **MEAN_MAP_QUALITY** | 
+|:---:|:---:|:---:|:---:|
+| Rh1_R1_001 | 0.1844 | 0.7664 | 28.42 |
+| Rh2_R1_001 | 0.2191 | 0.8243 | 29.32 | 
+| Rh3_R1_001 | 0.1482 | 0.7405 | 27.77 |
+| Rh4_R1_001 | 0.1694 | 0.7166 | 28.62 | 
+| Rh5_R1_001 | 0.2368 | 0.943 | 28.68 | 
+| Rh6_R1_001 | 0.2271 | 0.9149 | 29.01 | 
+| Rh7_R1_001 | 0.2185 | 0.8851 | 28.47 | 
+| Rh8_R1_001 | 0.2188 | 0.9475 | 29.15 | 
+| Rh10_R1_001 | 0.2561 | 1.0472 | 28.59 | 
+| Rh11_R1_001 | 0.2284 | 0.9772 | 28.47 | 
+| Rh12_R1_001 | 0.253 | 1.0263 | 29.06 | 
+| Rh14_R1_001 | 0.2214 | 0.9804 | 29.35 | 
+| Rh15_R1_001 | 0.226 | 0.9128 | 28.77 | 
+| Rh16_R1_001 | 0.29 | 1.2004 | 29.18 | 
+| Rh18_R1_001 | 0.2075 | 1.0798 | 28.59 | 
+| Rh19_R1_001 | 0.2252 | 0.9003 | 29.01 | 
+| Rh21_R1_001 | 0.2726 | 1.2379 | 29.02 | 
+| Rh22_R1_001 | 0.2368 | 1.1062 | 29.13 | 
+
+
+
+# Methylation QC
+
+ **Library** | **M-bias plot** | 
+|:------:|:-----------:|
+| Rh1_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh2_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-2_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh3_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh4_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png | 
+| Rh5_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh6_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh7_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh8_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh10_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh11_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh12_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh14_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh15_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh16_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh18_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh19_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh21_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+| Rh22_R1_001 | ![](/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/working/QC/Rh-1_R1_001_trimmomatic_bismark_bt2_SE_report.png) | 
+
