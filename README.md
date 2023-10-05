@@ -69,7 +69,7 @@ The following 6 groups (n=3 each) of porcine myocardium DNA are therefore presen
 3. “MVM” = myocardial injection of microvesicles in a normal diet model; 
 4. “HVM” = myocardial injection of microvesicles in a high-fat diet model; 
 5. “HSMV normal” = myocardial injection of vehicle control in a high-fat diet - normal heart tissue; 
-6. and “HSMV ischemic” = myocardial injection of vehicle control in a high-fat diet – ischemic heart tissue.
+6. “HSMV ischemic” = myocardial injection of vehicle control in a high-fat diet – ischemic heart tissue.
 
 Goal: we want to determine the loci differentially methylated in all pairwise comparisons between the groups to answer these experimental questions:
 
@@ -80,56 +80,35 @@ Goal: we want to determine the loci differentially methylated in all pairwise co
 3). What was the effect of microvesicle treatment (vs. ischemia) in normal diet and in high-fat diet? (MVM vs. SMV ischemic; and HVM vs. HSMV ischemic)
 
 Notes: The differentially methylated loci detection should be done at reasonable stringency to a) characterize the extent of changes by each experimental factor, and b) to inform downstream pathway analysis.
+
 The differentially methylated loci need to be mapped to the nearest transcript (with distance to TSS) and presented in the form of data tables convenient for heatmaps (i.e. with methylation percent values) and for downstream pathway analysis (i.e. with gene names and IDs).
 
 # Analysis Overview
-The following steps were performed in the analysis pipeline: 
+Initial QC of raw reads was run using FASTQC (0.11.9) <sup>1</sup>. Reads were trimmed using Trim Galore (0.6.5) <sup>2</sup> with the `--rrbs` option to remove any filled-in cytosine positions remaining from the library preparation, `--adapter AGATCGGAAGAGC` to remove adapters, `--clip_R1 6` to remove primers left from the PBAT library preparation, and `--quality 20` to remove low-quality ends from the reads. An additional trimming step was performed in Trimmomatic (0.36) to remove any additional adapters (`ILLUMINACLIP:TruSeq3-SE.fa:2:30:5:6:true`), low-quality bases (`SLIDINGWINDOW:4:20`), or truncated reads (`MINLEN:35`). Bismark (0.22.3) <sup>4</sup> was used to prepare the reference genome (`bismark_genome_preparation`) from the Sus scrofa Sscrofa11.1 genome<sup>4, 5</sup>. Bismark (0.22.3) <sup>4</sup> was also used for aligning reads to the reference (`bismark`) and extracting the methylation information (`bismark_methylation_extractor`). Alignments were ran with the `pbat` flag to properly align reads to the complementary-to-original strands of the genome and methylation extraction was ran with the `--comprehensive` and `-merge_non_CpG` flags to extract methylation in CpG context, `--bedGraph` to get an output in bedgraph format, and `--ignore_3prime 6` to ignore methylation biases on the 3' ends of the reads. Loci were filtered to include only loci that had at least one count (methylated or unmethylated) in every sample. Methylated and unmethylated counts were summed across Ensembl gene promoter regions (within 2kb of a transcription start site) using biomaRt(2.46.3)<sup>7, 8 </sup> and GRanges(1.42.0)<sup>9</sup> (`distanceToNearest`). The edgeR<sup>10</sup> package was used to find differentially methylated promoters. Briefly, the glmFit function was used to fit a negative binomial generalized log-linear model. The experimental design matrix was constructed using modelMatrixMeth with a factorial experimental design (~0 + group), where group was a factor variable with levels comprised of each combination of treatment/diet/tissue. We dropped the intercept from our model to parameterize it as a means model. Subsequently, the glmLRT function was used to find differentially methylated promoters for comparisons of interest, which were made by constructing contrast vectors. Promoters were considered differentially methylated if the nominal p-value was < 0.01. 
 
-- Initial QC of raw reads was run using FASTQC<sup>1</sup>.
-
-- Reads were trimmed using Trim Galore <sup>2</sup> and Trimmomatic <sup>3</sup>. 
-
-- Bismark<sup>4</sup> was used to prepare the reference genome and to align trimmed reads.
-
-- Bismark methylation extractor was used to extract methylation information.
-
-- The edgeR<sup>5</sup> package was used to find differentially methylated loci. 
-
-1.) Andrews S. (2010). FastQC: a quality control tool for high throughput sequence data. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc
+1.) Andrews (2010). FastQC: a quality control tool for high throughput sequence data. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc
 
 2.) Krueger F. (2012). A wrapper tool around Cutadapt and FastQC to consistently apply quality and adapter trimming to FastQ files, with some extra functionality for MspI-digested RRBS-type (Reduced Representation Bisufite-Seq) libraries. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/trim_galore/
 
 3.) Bolger et al. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. DOI: 10.1093/bioinformatics/btu170 
 
-4.) Krueger F. (2010). Bismark: A tool to map bisulfite converted sequence reads and determine cytosine methylation states. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/bismark/
+4.) Krueger (2010). Bismark: A tool to map bisulfite converted sequence reads and determine cytosine methylation states. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/bismark/
 
-5.) Chen et al. (2018).  Differential methylation analysis of reduced representation bisulfite sequencing experiments using edgeR. DOI: 10.12688/f1000research.13196.2 
+5.) Li et al. (2016). Comprehensive variation discovery and recovery of missing sequence in the pig genome using multiple de novo assemblies. DOI: 10.1101/gr.207456.116 
 
-## Directory creation
-Run `/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/scripts/0_rrbs_mkdir.sh` to create all directories for analysis.
+6.) Warr et al. (2020). An improved pig reference genome sequence to enable pig genetics and genomics research. DOI: 10.1093/gigascience/giaa051
 
-## Bismark Reference Genome Creation
-Run `/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/scripts/1_rrbs_genome.sh` to create S. scrofa (Ensembl Sscrofa11.1) Bismark reference genome with the `bismark_genome_preparation` function. 
+7.) Durinck et al. (2009). Mapping identifiers for the integration of genomic datasets with the R/Bioconductor package biomaRt. DOI: 10.1038/nprot.2009.97 
 
-## Initial QC
-Run `/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/scripts/2_rrbs_fastqc.sh` to run some initial read QC with FastQC.
+8.) Durinck et al. (2005). BioMart and Bioconductor: a powerful link between biological databases and microarray data analysis. DOI: 10.1093/bioinformatics/bti525 
 
-## Trim Galore 
-Run `/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/scripts/3_rrbs_trim_galore.sh` to perform some initial quality and adapter trimming (optional flags set: `--quality 20 --clip_R1 6 --adapter AGATCGGAAGAGC --rrbs`).
+9.) Lawrence et al. (2013). Software for Computing and Annotating Genomic Ranges. DOI: 10.1371/journal.pcbi.1003118
 
-## Trimmomatic
-Run `/gpfs/data/cbc/fedulov_alexey/Fedulov_porcine_rrbs/scripts/4_rrbs_trimmomatic.sh` to perform some initial quality and adapter trimming (optional flags set: `--quality 20 --clip_R1 6 --adapter AGATCGGAAGAGC --rrbs`).
+10.) Chen et al. (2018).  Differential methylation analysis of reduced representation bisulfite sequencing experiments using edgeR. DOI: 10.12688/f1000research.13196.2 
 
-## Bismark Alignment
-Trim Galore and Trimmomatic trimmed reads were aligned to the S. scrofa Bismark genome (optional flags: `-bowtie2 --un --pbat`).
+# Read QC
 
 
-## Part 5: Read alignment
-* Trimmed reads were aligned against the 
-* Reference indexing and read mapping were performed in Bismark in which bisulfite indexes for Bowtie2 were created (`--bowtie2`) and mapping was done for PBAT libraries (`--pbat`)  using the following parameters: 
-```
-bismark -o /gpfs/data/cbc/fedulov_alexey/porcine_rrbs/alignments/update --bowtie2 --genome /gpfs/data/shared/databases/refchef_refs/S_scrofa/primary/bismark_index/ --un --pbat $trimmed_read
-```
 
 ## Part 7: Methylation Extracor 
 
